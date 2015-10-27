@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Lambda Interpreter: </title>
+    <script src="jquery-1.11.3.js"></script>
+    <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <script src="bootstrap/js/bootstrap.min.js"></script>
+    <script src="index.js"></script>
+
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row row-centered">
+        <div class="col-xs-1 col-centered"></div>
+            <div class="col-xs-10 col-centered">
+            <div class="page-header">
+                <h1>Lambda Interpreter<small></small></h1>
+            </div>
+            <div class="col-xs-8 col-centered">
+                <textarea id="expression" type="text" class="form-control" placeholder="Enter lambda expression"></textarea>
+            </div>
+            <div class="col-xs-2 col-centered">
+                <div class="dropup">
+                    <button id="strategies" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                    </button>
+                    <ul id="strategies_dropdown" class="dropdown-menu" aria-labelledby="dropdownMenu1">
+                    </ul>
+                </div>
+                <br>
+                <button id="eval_button" type="submit" class="btn">Evaluate</button>
+                <button id="step_button" type="submit" class="btn">Step</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="index.js"></script>
+</body>
+</html>
