@@ -1,15 +1,11 @@
 
 
 
-function regex_lex() {
+function () {
     /*
-        (\x. x y1)
-
          (  ) / . "\w+"
 
-
     var tokens = [];
-
     var res;
     var regex = /^\(|\)|\\|\.|\w+|\s+/g;
     while((res = regex.exec(program)) !== null) {
@@ -17,10 +13,6 @@ function regex_lex() {
             tokens.push(res[0]);
         }
     }
-
-    tokens = [];
-
-
      */
 
     var program = "(\\x. (\\d.x) x)";
@@ -40,7 +32,45 @@ function regex_lex() {
 
 
 
-    to_ast(tokens);
+   //k to_ast(tokens);
+
+
+}
+
+
+
+function regex_lex() {
+    /*
+         (  ) / . "\w+"
+
+    var tokens = [];
+    var res;
+    var regex = /^\(|\)|\\|\.|\w+|\s+/g;
+    while((res = regex.exec(program)) !== null) {
+        if (!/\s+/.test(res[0])) {
+            tokens.push(res[0]);
+        }
+    }
+     */
+
+    var program = "(\\x. (\\d.x) x)";
+    var tokens = [];
+
+    var remaining = program.replace(/\(|\)|\\|\.|\w+/g, function (tok) {
+        tokens.push(tok);
+        return ''
+    });
+
+
+    console.log(tokens);
+    console.log('"' + remaining + '"');
+    if(!/^\s*$/.test(remaining)) {
+        console.log("invalid input");
+    }
+
+
+
+   //k to_ast(tokens);
 
 
 }
@@ -62,23 +92,20 @@ var evaluation_stategies = {
     "Pass by Reference" : function () {}
 };
 
-
 function set_strategy(strategy) {
-    $("#strategies").html(strategy + '&nbsp;&nbsp;<span class="caret"></span>');
-    $("#strategies").val(strategy);
+    //$("#strategies").html(strategy + '&nbsp;&nbsp;<span class="caret"></span>');
+    //$("#strategies").val(strategy);
+    $("#strategies").text(strategy);
 }
-
 
 $(function() {
 
     set_strategy(Object.keys(evaluation_stategies)[0]);
 
     $(".dropdown-menu li a").click(function () {
-        set_strategy($(this).val());
+        set_strategy($(this).text());
     });
 });
-
-
 
 $.each(evaluation_stategies, function(name, func) {
     $("#strategies_dropdown").append("<li><a href=\"#\">" + name+ "</a></li>");
