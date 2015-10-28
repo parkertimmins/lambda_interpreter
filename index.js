@@ -1,43 +1,70 @@
 
 
 
-function () {
-    /*
-         (  ) / . "\w+"
+function shunting_yard(tokens) {
 
-    var tokens = [];
-    var res;
-    var regex = /^\(|\)|\\|\.|\w+|\s+/g;
-    while((res = regex.exec(program)) !== null) {
-        if (!/\s+/.test(res[0])) {
-            tokens.push(res[0]);
+    var output = [];
+    var stack = [];
+    while(tokens.length > 0) {
+        var current = tokens.shift();
+        console.log("current: " + current);
+        console.log("stack: " + stack);
+        console.log("output: " + output) ;
+
+        if(current.match(/\w+/)) {
+            output.push(current);
+        }
+        else if(current == ".") { //abstraction
+            while(stack.length > 0  && stack[stack.length-1].match(/s+/)) {
+                output.push(stack.pop());
+            }
+           stack.push(current);
+        }
+        else if(current.match(/\s+/)) {
+            while(stack.length > 0 && stack[stack.length-1].match(/s+/)) {
+                output.push(stack.pop());
+            }
+           stack.push(current);
+        }
+        else if(current == "(") {
+            stack.push(current);
+        }
+        else if(current == ")") {
+            while(stack.length > 0 && stack[stack.length-1] != "(") {
+                output.push(stack.pop());
+            }
+            if(stack.length == 0) {
+                console.log("mismatched parenthesis");
+            }
+            stack.pop(); // pop off left paren
         }
     }
-     */
 
-    var program = "(\\x. (\\d.x) x)";
-    var tokens = [];
-
-    var remaining = program.replace(/\(|\)|\\|\.|\w+/g, function (tok) {
-        tokens.push(tok);
-        return ''
-    });
-
-
-    console.log(tokens);
-    console.log('"' + remaining + '"');
-    if(!/^\s*$/.test(remaining)) {
-        console.log("invalid input");
+    while(stack.length > 0) {
+        if(stack[stack.length-1] == '(' || stack[stack.length-1] == ')') {
+            console.log("mismatched parenthesis");
+        }
+        output.push(stack.pop());
     }
 
-
-
-   //k to_ast(tokens);
-
-
+    return output
 }
 
 
+
+
+
+
+// all spaces are lambda application => whitespace matters
+function lex_assume_correct(program) {
+    var tokens = [];
+    var res;
+    var regex = /^\(|\)|\\|\.|\w+|\s+/g;
+    while ((res = regex.exec(program)) !== null) {
+        tokens.push(res[0]);
+    }
+    return tokens;
+}
 
 function regex_lex() {
     /*
@@ -68,20 +95,13 @@ function regex_lex() {
         console.log("invalid input");
     }
 
-
-
    //k to_ast(tokens);
-
-
 }
 
 function to_ast(tokens) {
-   
-
     while(tokens.length > 0) {
        var current = tokens.shift();
     }
-
     return toks;
 }
 
@@ -93,8 +113,6 @@ var evaluation_stategies = {
 };
 
 function set_strategy(strategy) {
-    //$("#strategies").html(strategy + '&nbsp;&nbsp;<span class="caret"></span>');
-    //$("#strategies").val(strategy);
     $("#strategies").text(strategy);
 }
 
@@ -112,6 +130,11 @@ $.each(evaluation_stategies, function(name, func) {
 })
 
 $("#eval_button").click(function(){
+
+    var program = "(\\x. (\\d.x) x)";
+
+    console.log(shunting_yard(lex_assume_correct("(\\x.(\\d.x) x)")))
+
     alert("evaled");
 })
 
