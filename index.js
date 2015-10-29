@@ -2,20 +2,32 @@
 
 
 function Var(id) {
-    this.type = 'var'
     this.id = id;
 }
 
 function App(func, arg) {
-    this.type = 'app'
     this.func = func;
     this.arg = arg;
 }
 
 function Abs(v, expr) {
-    this.type = 'abs'
     this.var = v;
     this.expr = expr;
+}
+
+function pretty_str_expr(expr) {
+    if(expr instanceof Var) {
+        return expr.id
+    }
+    else if(expr instanceof App) {
+        return "App(" + pretty_str_expr(expr.func) + ", " + pretty_str_expr(expr.arg) + ")";
+    }
+    else if(expr instanceof Abs) {
+        return "Abs(" + pretty_str_expr(expr.var) + ", " + pretty_str_expr(expr.expr) + ")";
+    }
+    else {
+        console.log("Wtfuzz");
+    }
 }
 
 
@@ -26,11 +38,10 @@ function shunting_yard_ast(tokens) {
         var current = tokens.shift();
 
         if(current.match(/\w+/)) {
-            console.log("var currentG: " + current)
             output.push(new Var(current));
         }
         else if(current == "." || current.match(/\s+/)) { //abstraction
-            while(stack.length > 0  && stack[stack.length-1].match(/s+/)) {
+            while(stack.length > 0  && stack[stack.length-1].match(/\s+/)) {
                 stack.pop();
                 var f = output.pop();
                 var s = output.pop();
@@ -48,17 +59,14 @@ function shunting_yard_ast(tokens) {
                 if(t == ".") {
                     var f = output.pop();
                     var s = output.pop();
-                    console.log('abs: ' + JSON.stringify(f) + "  " + JSON.stringify(s))
                     output.push(new Abs(s, f));
                 }
                 else if(t.match(/\s+/)) {
                     var f = output.pop();
                     var s = output.pop();
-                    console.log('app: ' + JSON.stringify(f) + "  " + JSON.stringify(s))
                     output.push(new App(s, f));
                 }
                 else {
-                    console.log("var: " + '"' + t + '"')
                     output.push(new Var(t));
                 }
             }
@@ -109,7 +117,7 @@ function shunting_yard(tokens) {
             output.push(current);
         }
         else if(current == "." || current.match(/\s+/)) { //abstraction
-            while(stack.length > 0  && stack[stack.length-1].match(/s+/)) {
+            while(stack.length > 0  && stack[stack.length-1].match(/\s+/)) {
                 output.push(stack.pop());
             }
            stack.push(current);
@@ -198,9 +206,14 @@ $.each(evaluation_stategies, function(name, func) {
 })
 
 $("#eval_button").click(function(){
-    console.log(shunting_yard_ast(separate_tokens("(\\x.(\\d.x) x)")))
+    var expr = $("#expression").val();
+    var tokens = separate_tokens(expr);
+    console.log("tokens: " + tokens);
+    var shunted = shunting_yard_ast(tokens)[0];
+    console.log("ast: " + JSON.stringify(shunted));
+    console.log("pretty: " + pretty_str_expr(shunted));
 })
 
 $("#step_button").click(function(){
-    alert("stepped");
+    console.log(pretty_str_expr(shunting_yard_ast(separate_tokens("(\\x.(\\d.x) x)"))[0]))     ;
 })
