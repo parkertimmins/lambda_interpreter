@@ -59,7 +59,7 @@ function shunting_yard(tokens) {
 function lex_assume_correct(program) {
     var tokens = [];
     var res;
-    var regex = /^\(|\)|\\|\.|\w+|\s+/g;
+    var regex = /\(|\)|\\|\.|\w+|\s+/g;
     while ((res = regex.exec(program)) !== null) {
         tokens.push(res[0]);
     }
