@@ -2,7 +2,6 @@
 
 
 function shunting_yard(tokens) {
-
     var output = [];
     var stack = [];
     while(tokens.length > 0) {
@@ -14,14 +13,8 @@ function shunting_yard(tokens) {
         if(current.match(/\w+/)) {
             output.push(current);
         }
-        else if(current == ".") { //abstraction
+        else if(current == "." || current.match(/\s+/)) { //abstraction
             while(stack.length > 0  && stack[stack.length-1].match(/s+/)) {
-                output.push(stack.pop());
-            }
-           stack.push(current);
-        }
-        else if(current.match(/\s+/)) {
-            while(stack.length > 0 && stack[stack.length-1].match(/s+/)) {
                 output.push(stack.pop());
             }
            stack.push(current);
@@ -40,19 +33,21 @@ function shunting_yard(tokens) {
         }
     }
 
-    while(stack.length > 0) {
-        if(stack[stack.length-1] == '(' || stack[stack.length-1] == ')') {
-            console.log("mismatched parenthesis");
-        }
-        output.push(stack.pop());
+    if(stack.indexOf('(') != -1 || stack.indexOf(')') != -1) {
+        console.log("mismatched parenthesis");
+    }
+    else {
+        output.concat(stack.reverse())
     }
 
     return output
 }
 
 
-
-
+// all spaces are lambda application => whitespace matters
+function separate_tokens(prog_str) {
+    return prog_str.split(/(\(|\)|\\|\.|\w+|\s+)/).filter(function (t) {return t != ''});
+}
 
 
 // all spaces are lambda application => whitespace matters
@@ -67,19 +62,6 @@ function lex_assume_correct(program) {
 }
 
 function regex_lex() {
-    /*
-         (  ) / . "\w+"
-
-    var tokens = [];
-    var res;
-    var regex = /^\(|\)|\\|\.|\w+|\s+/g;
-    while((res = regex.exec(program)) !== null) {
-        if (!/\s+/.test(res[0])) {
-            tokens.push(res[0]);
-        }
-    }
-     */
-
     var program = "(\\x. (\\d.x) x)";
     var tokens = [];
 
@@ -94,16 +76,8 @@ function regex_lex() {
     if(!/^\s*$/.test(remaining)) {
         console.log("invalid input");
     }
-
-   //k to_ast(tokens);
 }
 
-function to_ast(tokens) {
-    while(tokens.length > 0) {
-       var current = tokens.shift();
-    }
-    return toks;
-}
 
 
 var evaluation_stategies = {
@@ -130,12 +104,7 @@ $.each(evaluation_stategies, function(name, func) {
 })
 
 $("#eval_button").click(function(){
-
-    var program = "(\\x. (\\d.x) x)";
-
-    console.log(shunting_yard(lex_assume_correct("(\\x.(\\d.x) x)")))
-
-    alert("evaled");
+    console.log(shunting_yard(separate_tokens("(\\x.(\\d.x) x)")))
 })
 
 $("#step_button").click(function(){
