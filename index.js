@@ -1,6 +1,101 @@
 
 
 
+function Var(id) {
+    this.type = 'var'
+    this.id = id;
+}
+
+function App(func, arg) {
+    this.type = 'app'
+    this.func = func;
+    this.arg = arg;
+}
+
+function Abs(v, expr) {
+    this.type = 'abs'
+    this.var = v;
+    this.expr = expr;
+}
+
+
+function shunting_yard_ast(tokens) {
+    var output = [];
+    var stack = [];
+    while(tokens.length > 0) {
+        var current = tokens.shift();
+
+        if(current.match(/\w+/)) {
+            console.log("var currentG: " + current)
+            output.push(new Var(current));
+        }
+        else if(current == "." || current.match(/\s+/)) { //abstraction
+            while(stack.length > 0  && stack[stack.length-1].match(/s+/)) {
+                stack.pop();
+                var f = output.pop();
+                var s = output.pop();
+                console.log(JSON.stringify(f) + "  " + JSON.stringify(s))
+                output.push(new App(f, s));
+            }
+           stack.push(current);
+        }
+        else if(current == "(") {
+            stack.push(current);
+        }
+        else if(current == ")") {
+            while(stack.length > 0 && stack[stack.length-1] != "(") {
+                var t = stack.pop();
+                if(t == ".") {
+                    var f = output.pop();
+                    var s = output.pop();
+                    console.log('abs: ' + JSON.stringify(f) + "  " + JSON.stringify(s))
+                    output.push(new Abs(s, f));
+                }
+                else if(t.match(/\s+/)) {
+                    var f = output.pop();
+                    var s = output.pop();
+                    console.log('app: ' + JSON.stringify(f) + "  " + JSON.stringify(s))
+                    output.push(new App(s, f));
+                }
+                else {
+                    console.log("var: " + '"' + t + '"')
+                    output.push(new Var(t));
+                }
+            }
+            if(stack.length == 0) {
+                console.log("mismatched parenthesis");
+            }
+            stack.pop(); // pop off left paren
+        }
+    }
+
+    if(stack.indexOf('(') != -1 || stack.indexOf(')') != -1) {
+        console.log("mismatched parenthesis");
+    }
+    else {
+        while(stack.length > 0) {
+            var top = stack.pop();
+            if(top == ".") {
+                var f = output.pop();
+                var s = output.pop();
+                output.push(new Abs(s, f));
+            }
+            else if(top.match(/s+/)) {
+                var f = output.pop();
+                var s = output.pop();
+                output.push(new App(s, f
+                ));
+            }
+            else {
+                output.push(new Var(top));
+            }
+        }
+    }
+    return output
+}
+
+
+
 function shunting_yard(tokens) {
     var output = [];
     var stack = [];
@@ -39,7 +134,6 @@ function shunting_yard(tokens) {
     else {
         output.concat(stack.reverse())
     }
-
     return output
 }
 
@@ -104,7 +198,7 @@ $.each(evaluation_stategies, function(name, func) {
 })
 
 $("#eval_button").click(function(){
-    console.log(shunting_yard(separate_tokens("(\\x.(\\d.x) x)")))
+    console.log(shunting_yard_ast(separate_tokens("(\\x.(\\d.x) x)")))
 })
 
 $("#step_button").click(function(){
