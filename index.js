@@ -40,128 +40,71 @@ function tests() {
 
 function test(a, b) {
     console.log(a != b ? 'failed: ' + a + " != " + b : 'pass');
+}
 
+function app_swap_order(f, g) {
+    return new App(g, f);
+}
+
+function abs_swap_order(f, g) {
+    return new Abs(g, f);
+}
+
+function move_from_stack_to_output(stack, output, num_left) {
+    while (stack.length > num_left) {
+        var top = stack.pop();
+        if (top == ".") {
+            output.push(abs_swap_order(output.pop(), output.pop()));
+        }
+        else if (top.match(/\s+/)) {
+            output.push(app_swap_order(output.pop(), output.pop()));
+        }
+        else {
+            output.push(new Var(top));
+        }
+    }
+}
 
 function shunting_yard_ast(tokens) {
     var output = [];
     var stack = [];
-    while(tokens.length > 0) {
+    while (tokens.length > 0) {
         var current = tokens.shift();
 
-        if(current.match(/\w+/)) {
+        if (current.match(/\w+/)) {
             output.push(new Var(current));
             //console.log("1: " + current);
         }
-        else if(current == "." || current.match(/\s+/)) {
-            while(stack.length > 0  && stack[stack.length-1].match(/\s+/)) {
+        else if (current == "." || current.match(/\s+/)) {
+            while (stack.length > 0 && stack[stack.length - 1].match(/\s+/)) {
                 stack.pop();
-                var f = output.pop();
-                var s = output.pop();
-                //console.log("2: " + JSON.stringify(f) + "  " + JSON.stringify(s))
-                output.push(new App(s, f));
+                output.push(app_swap_order(output.pop(), output.pop()));
             }
-           stack.push(current);
-        }
-        else if(current == "(") {
             stack.push(current);
         }
-        else if(current == ")") {
-            while(stack.length > 0 && stack[stack.length-1] != "(") {
-                var t = stack.pop();
-                if(t == ".") {
-                    var f = output.pop();
-                    var s = output.pop();
-                    //console.log("3: " + JSON.stringify(f) + "  " + JSON.stringify(s))
-                    output.push(new Abs(s, f));
-                }
-                else if(t.match(/\s+/)) {
-                    var f = output.pop();
-                    var s = output.pop();
-                    //console.log("4: " + JSON.stringify(f) + "  " + JSON.stringify(s))
-                    output.push(new App(s, f));
-                }
-                else {
-                    //console.log(t);
-                    output.push(new Var(t));
-                }
+        else if (current == "(") {
+            stack.push(current);
+        }
+        else if (current == ")") {
+            var paren_index =  stack.lastIndexOf('(');
+            if(paren_index != -1) {
+                move_from_stack_to_output(stack, output, paren_index+1)
+                stack.pop(); // pop off left paren
             }
-            if(stack.length == 0) {
+            else {
                 console.log("mismatched parenthesis");
             }
-            stack.pop(); // pop off left paren
         }
     }
 
-    if(stack.indexOf('(') != -1 || stack.indexOf(')') != -1) {
+    if (stack.indexOf('(') != -1 || stack.indexOf(')') != -1) {
         console.log("mismatched parenthesis");
     }
     else {
-        while(stack.length > 0) {
-            var top = stack.pop();
-            if(top == ".") {
-                var f = output.pop();
-                var s = output.pop();
-                //console.log("6: " + JSON.stringify(f) + "  " + JSON.stringify(s))
-                output.push(new Abs(s, f));
-            }
-            else if(top.match(/\s+/)) {
-                var f = output.pop();
-                var s = output.pop();
-                //console.log("7: " + JSON.stringify(f) + "  " + JSON.stringify(s))
-                output.push(new App(s, f));
-            }
-            else {
-                //console.log("8: " + JSON.stringify(top)); /////////////////
-                output.push(new Var(top));
-            }
-        }
+        move_from_stack_to_output(stack, output, 0)
     }
     return output[0];
 }
-
-
-
-function shunting_yard(tokens) {
-    var output = [];
-    var stack = [];
-    while(tokens.length > 0) {
-        var current = tokens.shift();
-        console.log("current: " + current);
-        console.log("stack: " + stack);
-        console.log("output: " + output) ;
-
-        if(current.match(/\w+/)) {
-            output.push(current);
-        }
-        else if(current == "." || current.match(/\s+/)) { //abstraction
-            while(stack.length > 0  && stack[stack.length-1].match(/\s+/)) {
-                output.push(stack.pop());
-            }
-           stack.push(current);
-        }
-        else if(current == "(") {
-            stack.push(current);
-        }
-        else if(current == ")") {
-            while(stack.length > 0 && stack[stack.length-1] != "(") {
-                output.push(stack.pop());
-            }
-            if(stack.length == 0) {
-                console.log("mismatched parenthesis");
-            }
-            stack.pop(); // pop off left paren
-        }
-    }
-
-    if(stack.indexOf('(') != -1 || stack.indexOf(')') != -1) {
-        console.log("mismatched parenthesis");
-    }
-    else {
-        output.concat(stack.reverse())
-    }
-    return output
-}
-
 
 // all spaces are lambda application => whitespace matters
 function separate_tokens(prog_str) {
