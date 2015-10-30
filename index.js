@@ -1,34 +1,45 @@
 
 
-
 function Var(id) {
+    this.type = 'var';
     this.id = id;
 }
 
 function App(func, arg) {
+    this.type = 'app';
     this.func = func;
     this.arg = arg;
 }
 
 function Abs(v, expr) {
+    this.type = 'abs';
     this.var = v;
     this.expr = expr;
 }
 
 function pretty_str_expr(expr) {
-    if(expr instanceof Var) {
-        return expr.id
-    }
-    else if(expr instanceof App) {
-        return "App(" + pretty_str_expr(expr.func) + ", " + pretty_str_expr(expr.arg) + ")";
-    }
-    else if(expr instanceof Abs) {
-        return "Abs(" + pretty_str_expr(expr.var) + ", " + pretty_str_expr(expr.expr) + ")";
-    }
-    else {
-        console.log("Wtfuzz");
+    switch (expr.type) {
+        case 'var': return expr.id;
+        case 'app': return "App(" + pretty_str_expr(expr.func) + ", " + pretty_str_expr(expr.arg) + ")";
+        case 'abs': return "Abs(" + pretty_str_expr(expr.var) + ", " + pretty_str_expr(expr.expr) + ")";
+        default:    console.log("somethings wrong: " + expr + " " + expr.type);
     }
 }
+
+function pretty(prog_str) {
+    return pretty_str_expr(shunting_yard_ast(separate_tokens(prog_str)));
+}
+
+function tests() {
+    test(pretty('x x'), 'App(x, x)');
+    test(pretty('\\x.x'), 'Abs(x, x)');
+    test(pretty('(\\x.x)'), 'Abs(x, x)');
+    test(pretty('(\\x.a b) (\\y.b)'), 'App(Abs(x, App(a, b)), Abs(y, b))');
+    test(pretty('(\\s.a (b c))'), 'Abs(s, App(a, App(b, c)))');
+}
+
+function test(a, b) {
+    console.log(a != b ? 'failed: ' + a + " != " + b : 'pass');
 
 
 function shunting_yard_ast(tokens) {
@@ -39,14 +50,15 @@ function shunting_yard_ast(tokens) {
 
         if(current.match(/\w+/)) {
             output.push(new Var(current));
+            //console.log("1: " + current);
         }
-        else if(current == "." || current.match(/\s+/)) { //abstraction
+        else if(current == "." || current.match(/\s+/)) {
             while(stack.length > 0  && stack[stack.length-1].match(/\s+/)) {
                 stack.pop();
                 var f = output.pop();
                 var s = output.pop();
-                console.log(JSON.stringify(f) + "  " + JSON.stringify(s))
-                output.push(new App(f, s));
+                //console.log("2: " + JSON.stringify(f) + "  " + JSON.stringify(s))
+                output.push(new App(s, f));
             }
            stack.push(current);
         }
@@ -59,14 +71,17 @@ function shunting_yard_ast(tokens) {
                 if(t == ".") {
                     var f = output.pop();
                     var s = output.pop();
+                    //console.log("3: " + JSON.stringify(f) + "  " + JSON.stringify(s))
                     output.push(new Abs(s, f));
                 }
                 else if(t.match(/\s+/)) {
                     var f = output.pop();
                     var s = output.pop();
+                    //console.log("4: " + JSON.stringify(f) + "  " + JSON.stringify(s))
                     output.push(new App(s, f));
                 }
                 else {
+                    //console.log(t);
                     output.push(new Var(t));
                 }
             }
@@ -86,20 +101,22 @@ function shunting_yard_ast(tokens) {
             if(top == ".") {
                 var f = output.pop();
                 var s = output.pop();
+                //console.log("6: " + JSON.stringify(f) + "  " + JSON.stringify(s))
                 output.push(new Abs(s, f));
             }
-            else if(top.match(/s+/)) {
+            else if(top.match(/\s+/)) {
                 var f = output.pop();
                 var s = output.pop();
-                output.push(new App(s, f
-                ));
+                //console.log("7: " + JSON.stringify(f) + "  " + JSON.stringify(s))
+                output.push(new App(s, f));
             }
             else {
+                //console.log("8: " + JSON.stringify(top)); /////////////////
                 output.push(new Var(top));
             }
         }
     }
-    return output
+    return output[0];
 }
 
 
@@ -180,8 +197,6 @@ function regex_lex() {
     }
 }
 
-
-
 var evaluation_stategies = {
     "Normal" : function () {},
     "Pass by Value" : function () {},
@@ -203,17 +218,16 @@ $(function() {
 
 $.each(evaluation_stategies, function(name, func) {
     $("#strategies_dropdown").append("<li><a href=\"#\">" + name+ "</a></li>");
-})
+});
 
 $("#eval_button").click(function(){
     var expr = $("#expression").val();
     var tokens = separate_tokens(expr);
-    console.log("tokens: " + tokens);
-    var shunted = shunting_yard_ast(tokens)[0];
+    var shunted = shunting_yard_ast(tokens);
     console.log("ast: " + JSON.stringify(shunted));
     console.log("pretty: " + pretty_str_expr(shunted));
-})
+});
 
 $("#step_button").click(function(){
-    console.log(pretty_str_expr(shunting_yard_ast(separate_tokens("(\\x.(\\d.x) x)"))[0]))     ;
-})
+    console.log(pretty_str_expr(shunting_yard_ast(separate_tokens("(\\x.(\\d.x) x)"))));
+});
