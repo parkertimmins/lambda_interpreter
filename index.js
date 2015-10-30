@@ -36,7 +36,21 @@ function tests() {
     test(pretty('(\\x.x)'), 'Abs(x, x)');
     test(pretty('(\\x.a b) (\\y.b)'), 'App(Abs(x, App(a, b)), Abs(y, b))');
     test(pretty('(\\s.a (b c))'), 'Abs(s, App(a, App(b, c)))');
+    test(pretty('x x x'), 'App(App(x, x), x)');
+
+    test(pretty('(\\x.x z) \\y.w \\w.w x y z'), 'App(Abs(x, App(x, z)), Abs(y, App(w, Abs(w, App(App(App(w, x), y), z)))))');
+    //(lambda x.x z) lambda y.w lambda w.w x y z
+    //(lambda x. (x z)) (lambda y. (w (lambda w. (((w x) y) z))))
 }
+
+/*
+
+
+
+
+
+ */
+
 
 function test(a, b) {
     console.log(a != b ? 'failed: ' + a + " != " + b : 'pass');
@@ -65,17 +79,38 @@ function move_from_stack_to_output(stack, output, num_left) {
     }
 }
 
+
+function move_from_stack_to_output_while(stack, output, condition) {
+    while (stack.length > 0 && condition()) {
+        var top = stack.pop();
+        if (top == ".") {
+            output.push(abs_swap_order(output.pop(), output.pop()));
+        }
+        else if (top.match(/\s+/)) {
+            output.push(app_swap_order(output.pop(), output.pop()));
+        }
+        else {
+            output.push(new Var(top));
+        }
+    }
+}
+
+
 function shunting_yard_ast(tokens) {
     var output = [];
     var stack = [];
     while (tokens.length > 0) {
         var current = tokens.shift();
+        console.log(output.map(pretty_str_expr))
+        console.log('stack: ' + stack)
 
         if (current.match(/\w+/)) {
             output.push(new Var(current));
             //console.log("1: " + current);
         }
         else if (current == "." || current.match(/\s+/)) {
+
+            //move_from_stack_to_output_while(stack, output, function () { return stack[stack.length - 1].match(/\s+/) })
             while (stack.length > 0 && stack[stack.length - 1].match(/\s+/)) {
                 stack.pop();
                 output.push(app_swap_order(output.pop(), output.pop()));
@@ -88,6 +123,7 @@ function shunting_yard_ast(tokens) {
         else if (current == ")") {
             var paren_index =  stack.lastIndexOf('(');
             if(paren_index != -1) {
+                //move_from_stack_to_output_while(stack, output, function () { return stack[stack.length-1] != '(' })
                 move_from_stack_to_output(stack, output, paren_index+1)
                 stack.pop(); // pop off left paren
             }
