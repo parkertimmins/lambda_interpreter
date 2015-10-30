@@ -123,22 +123,6 @@ function lex_assume_correct(program) {
     return tokens;
 }
 
-function regex_lex() {
-    var program = "(\\x. (\\d.x) x)";
-    var tokens = [];
-
-    var remaining = program.replace(/\(|\)|\\|\.|\w+/g, function (tok) {
-        tokens.push(tok);
-        return ''
-    });
-
-
-    console.log(tokens);
-    console.log('"' + remaining + '"');
-    if(!/^\s*$/.test(remaining)) {
-        console.log("invalid input");
-    }
-}
 
 var evaluation_stategies = {
     "Normal" : function () {},
