@@ -39,17 +39,14 @@ function tests() {
     test(pretty('x x x'), 'App(App(x, x), x)');
     test(pretty('(\\x.x z) \\y.w \\w.w x y z'), 'App(Abs(x, App(x, z)), Abs(y, App(w, Abs(w, App(App(App(w, x), y), z)))))');
     test(pretty('(\\x.x z) (\\y.w \\w.w x y z)'), 'App(Abs(x, App(x, z)), Abs(y, App(w, Abs(w, App(App(App(w, x), y), z)))))');
-    //(lambda x.x z) lambda y.w lambda w.w x y z
-    //(lambda x. (x z)) (lambda y. (w (lambda w. (((w x) y) z))))
 }
-
 
 
 function test(a, b) {
     console.log(a != b ? 'failed: ' + a + " != " + b : 'pass');
 }
 
-function whil(stack, output, condition) {
+function move_from_stack_to_output_while(stack, output, condition) {
     while(stack.length > 0 && condition()) {
         var top = stack.pop();
         if(top == ".") {
@@ -63,7 +60,7 @@ function whil(stack, output, condition) {
             output.push(new App(f, s));
         }
         else {
-            output.push(new Var(top));
+            console.log("this should never happen");
         }
     }
 }
@@ -77,42 +74,15 @@ function shunting_yard(tokens) {
         if(current.match(/\w+/)) {
             output.push(new Var(current));
         }
-        else if(current.match(/\s+/)) {
-            while(stack.length > 0  && (stack[stack.length-1].match(/\s+/))) {
-                var top = stack.pop();
-                if(top == ".") {
-                    var s = output.pop();
-                    var f = output.pop();
-                    output.push(new Abs(f, s));
-                }
-                else if(/\s+/.test(top)) {
-                    var s = output.pop();
-                    var f = output.pop();
-                    output.push(new App(f, s));
-                }
-            }
+        else if(current.match(/\s+/)) { // only swap if both o1 and o2 are application
+            move_from_stack_to_output_while(stack, output, function() {return stack[stack.length-1].match(/\s+/)} );
             stack.push(current);
         }
         else if(current == "(" || current == '.') {
             stack.push(current);
         }
         else if(current == ")") {
-            while(stack.length > 0 && stack[stack.length-1] != "(") {
-                var top = stack.pop();
-                if(top == ".") {
-                    var s = output.pop();
-                    var f = output.pop();
-                    output.push(new Abs(f, s));
-                }
-                else if(/\s+/.test(top)) {
-                    var s = output.pop();
-                    var f = output.pop();
-                    output.push(new App(f, s));
-                }
-                else {
-                    console.log('shouldnt happen')
-                }
-            }
+            move_from_stack_to_output_while(stack, output, function() {return stack[stack.length-1] != '('} );
             if(stack.length == 0) {
                 console.log("mismatched parenthesis");
             }
@@ -124,26 +94,10 @@ function shunting_yard(tokens) {
         console.log("mismatched parenthesis");
     }
     else {
-        while(stack.length > 0) {
-            var top = stack.pop();
-            if(top == '.') {
-                var s = output.pop();
-                var f = output.pop();
-                output.push(new Abs(f, s));
-            }
-            else if(/\s+/.test(top)) {
-                var s = output.pop();
-                var f = output.pop();
-                output.push(new App(f, s));
-            }
-            else {
-                console.log('shouldnt happen')
-            }
-        }
+        move_from_stack_to_output_while(stack, output, function() {return true} );
     }
-    return output[0];
+    return output.pop();
 }
-
 
 function lower_prec(o1, o2) {
     if(o1 == '.' && o2 == '.') {
@@ -160,78 +114,6 @@ function lower_prec(o1, o2) {
     }
 }
 
-
-function shunting_yard_ast(tokens) {
-    var output = [];
-    var stack = [];
-    while (tokens.length > 0) {
-        var current = tokens.shift();
-
-        if (current.match(/\w+/)) {
-            output.push(new Var(current));
-        }
-        else if (current == "." || current.match(/\s+/)) {
-
-            //move_from_stack_to_output_while(stack, output, function () { return stack[stack.length - 1].match(/\s+/) })
-            while (stack.length > 0 && stack[stack.length - 1].match(/\s+/)) {
-                stack.pop();
-                output.push(app_swap_order(output.pop(), output.pop()));
-            }
-            stack.push(current);
-        }
-        else if (current == "(") {
-            stack.push(current);
-        }
-        else if (current == ")") {
-            //var paren_index =  stack.lastIndexOf('(');
-            //if(paren_index != -1) {
-                //move_from_stack_to_output_while(stack, output, function () { return stack[stack.length-1] != '(' })
-                //move_from_stack_to_output(stack, output, paren_index+1)
-
-            while (stack.length > 0 && stack[stack.length-1] != '(') {
-                var top = stack.pop();
-                if (top == ".") {
-                    output.push(abs_swap_order(output.pop(), output.pop()));
-                }
-                else if (top.match(/\s+/)) {
-                    output.push(app_swap_order(output.pop(), output.pop()));
-                }
-                else {
-                   output.push(new Var(top));
-                }
-            }
-
-            stack.pop(); // pop off left paren
-            //}
-            //else {
-            //    console.log("mismatched parenthesis");
-            if(stack.length == 0) {console.log("mismatched parenthesiss")}
-
-            //}
-        }
-    }
-
-    if (stack.indexOf('(') != -1 || stack.indexOf(')') != -1) {
-        console.log("mismatched parenthesis");
-    }
-    else {
-
-            while (stack.length > 0) {
-                var top = stack.pop();
-                if (top == ".") {
-                    output.push(abs_swap_order(output.pop(), output.pop()));
-                }
-                else if (top.match(/\s+/)) {
-                    output.push(app_swap_order(output.pop(), output.pop()));
-                }
-                else {
-                   output.push(new Var(top));
-                }
-            }
-        //move_from_stack_to_output(stack, output, 0)
-    }
-    return output[0];
-}
 
 // all spaces are lambda application => whitespace matters
 function separate_tokens(prog_str) {
@@ -275,7 +157,7 @@ $.each(evaluation_stategies, function(name, func) {
 $("#eval_button").click(function(){
     var expr = $("#expression").val();
     var tokens = separate_tokens(expr);
-    var shunted = shunting_yard_ast(tokens);
+    var shunted = shunting_yard(tokens);
     console.log("ast: " + JSON.stringify(shunted));
     console.log("pretty: " + pretty_str_expr(shunted));
 });
