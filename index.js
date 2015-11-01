@@ -25,6 +25,24 @@ function pretty_str_expr(expr) {
     }
 }
 
+function pretty_print(expr) {
+     switch (expr.type) {
+        case 'var': return expr.id;
+        case 'abs': return '\\' + expr.var.id + '.' + pretty_print(expr.expr);
+        case 'app':
+            var pretty_func = pretty_print(expr.func);
+            var pretty_arg = pretty_print(expr.arg);
+
+            if(expr.func.type == 'abs') {
+                pretty_func = '('  + pretty_func + ')';
+            }
+            if(expr.arg.type.type == 'app') {
+                pretty_arg = '('  + pretty_arg + ')';
+            }
+            return pretty_func + ' ' + pretty_arg;
+    }
+}
+
 function print(o) {
     console.log(JSON.stringify(o));
 }
@@ -78,6 +96,26 @@ function tests() {
     test(substitute(new Abs(new Var('y'), new Var('y')), new Var('x'), new Abs(new Var('y'), new Var('x'))), new Abs(new Var('y'), new Abs(new Var('y'), new Var('y'))), eq_ast);
 
     test(substitute(new Var('y'), new Var('x'), new Abs(new Var('y'), new Var('x'))), new Abs(new Var('y1'), new Var('y')), eq_ast);
+
+ //   print(normal_step(new Var('y')));
+//    test(normal_step(new Var('y')), { stepped : false, node : new Var('y') }, eq_obj);
+
+
+
+
+
+}
+
+function eq_obj(a, b) {
+    if(Object.keys(a).length != Object.keys(b).length) {
+        return false;
+    }
+    for(var k in a) {
+        if(!(k in b) || a[k] != b[k]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 
@@ -128,6 +166,43 @@ function eq_ast(a, b) {
    return false;
 }
 
+function eval(stepper) {
+    return function (expr) {
+        var expr_evaled = stepper(expr);
+        while(expr_evaled.stepped) {
+            expr_evaled = stepper(expr_evaled.node);
+        }
+        return expr_evaled.node;
+    };
+}
+
+function normal_step(ast_node) {
+     switch (ast_node.type) {
+        case 'var': return { stepped : false, node : ast_node };
+        case 'app': {
+            var func = ast_node.func;
+            var arg = ast_node.arg;
+            var func_evaled = normal_step(func);
+
+            if(func_evaled.stepped) {
+               return { stepped : true, node : new App(func_evaled.node, arg) };
+            }
+            else {
+                switch(func.type) {
+                    case 'var':
+                    case 'app':
+                        var arg_evaled = normal_step(arg);
+                        return { stepped : arg_evaled.stepped, node: new App(func, arg_evaled.node) };
+                    case 'abs': // redex
+                        return { stepped : true, node : substitute(arg, func.var, func.expr) }
+                }
+            }
+        }
+        case 'abs':
+             var expr_evaled = normal_step(ast_node.expr);
+             return { stepped : expr_evaled.stepped, node : new Abs(ast_node.var, expr_evaled.node) };
+    }
+}
 
 function variables(expr) {
     switch (expr.type) {
@@ -279,36 +354,20 @@ function lex_assume_correct(program) {
     return tokens;
 }
 
-/*
-function normal_evaluation(ast_node) {
-     switch (ast_node.type) {
-        case 'var': return ast_node;
-        case 'app': {
-            var func = ast_node.func;
-            var arg = ast_node.arg;
-
-            switch(func.type) {
-                case 'var': return new App(func, normal_evaluation(arg)); // can't eval var func, so eval arg
-                case 'app': return new App(normal_evaluation(func), arg);
-                case 'abs': return new
-            }
-        }
-        case 'abs': return "Abs(" + pretty_str_expr(expr.var) + ", " + pretty_str_expr(expr.expr) + ")";
-        default:    console.log("somethings wrong: " + expr + " " + expr.type);
-    }
-}
-*/
-
 
 
 var evaluation_stategies = {
-    "Normal" : function () {},
+    "Normal" : normal_step,
     "Pass by Value" : function () {},
     "Pass by Reference" : function () {}
 };
 
 function set_strategy(strategy) {
     $("#strategies").text(strategy);
+}
+
+function get_current_strategy() {
+    return $("#strategies").text();
 }
 
 $(function() {
@@ -326,12 +385,25 @@ $.each(evaluation_stategies, function(name, func) {
 
 $("#eval_button").click(function(){
     var expr = $("#expression").val();
-    var tokens = separate_tokens(expr);
-    var shunted = shunting_yard(tokens);
-    console.log("ast: " + JSON.stringify(shunted));
-    console.log("pretty: " + pretty_str_expr(shunted));
+    if(expr != '') {
+        var stepper = evaluation_stategies[get_current_strategy()];
+        var tokens = separate_tokens(expr);
+        var parsed = shunting_yard(tokens);
+        var evaled = eval(stepper)(parsed);
+        $("#expression").val(pretty_print(evaled));
+        $("#expression").text(pretty_print(evaled));
+    }
 });
 
 $("#step_button").click(function(){
-    console.log(pretty_str_expr(shunting_yard_ast(separate_tokens("(\\x.(\\d.x) x)"))));
+    var expr = $("#expression").val();
+
+    if(expr != '') {
+        var tokens = separate_tokens(expr);
+        var parsed = shunting_yard(tokens);
+        var stepper = evaluation_stategies[get_current_strategy()];
+        var evaled = stepper(parsed).node;
+        $("#expression").val(pretty_print(evaled));
+        $("#expression").text(pretty_print(evaled));
+    }
 });
