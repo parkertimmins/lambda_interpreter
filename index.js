@@ -25,6 +25,10 @@ function pretty_str_expr(expr) {
     }
 }
 
+function print(o) {
+    console.log(JSON.stringify(o));
+}
+
 function pretty(prog_str) {
     return pretty_str_expr(shunting_yard(separate_tokens(prog_str)));
 }
@@ -57,13 +61,23 @@ function tests() {
     test(new Abs(new Var("y"), new Var("x")), 5, neq_ast);
     test(eq_set({'x' : 1}, {'y' : 1}), false);
 
+    test(eq_set({}, {}), true);
     test(eq_set({'x' : 1}, {'x' : 1}), true);
     test(eq_set({'x' : 1}, {'x' : 1, 'y':1}), false);
+
     test(free_variables(new Var('x')), { 'x' : true }, eq_set);
+    test(free_variables(new Abs(new Var('x'), new Var('x'))), {}, eq_set);
+    test(free_variables(new App(new Var('x'), new Abs(new Var('x'), new Var('x')))), { 'x' : true }, eq_set);
 
-    test(free_variables(new Abs(new Var("y"), new Var("x"))), { 'x' : true }, neq_ast);
+    test(variables(new Abs(new Var('x'), new Var('x'))), { 'x' : true }, eq_set);
+    test(substitute(new Var('x'), new Var('y'), new Var('y')), new Var('x'), eq_ast);
+    test(substitute(new Var('x'), new Var('y'), new Var('t')), new Var('t'), eq_ast);
 
+    test(substitute(new Var('x'), new Var('y'), new App(new Var('y'), new Var('t'))), new App(new Var('x'), new Var('t')), eq_ast);
+    test(substitute(new Var('e'), new Var('x'), new Abs(new Var('x'), new Var('e1'))), new Abs(new Var('x'), new Var('e1')), eq_ast);
+    test(substitute(new Abs(new Var('y'), new Var('y')), new Var('x'), new Abs(new Var('y'), new Var('x'))), new Abs(new Var('y'), new Abs(new Var('y'), new Var('y'))), eq_ast);
 
+    test(substitute(new Var('y'), new Var('x'), new Abs(new Var('y'), new Var('x'))), new Abs(new Var('y1'), new Var('y')), eq_ast);
 }
 
 
@@ -114,24 +128,85 @@ function eq_ast(a, b) {
    return false;
 }
 
-function free_variables(expr) {
+
+function variables(expr) {
     switch (expr.type) {
         case 'var' :
-            var free = {};
-            free[expr.id] = true;
-            return free;
+            var free_var = {};
+            free_var[expr.id] = true;
+            return free_var;
 
         case 'app' :
             var free_in_arg = free_variables(expr.arg);
-            var free = free_variables(expr.func);
+            var free_app = free_variables(expr.func);
             for(var v in free_in_arg) {
-                free[v] = true;
+                free_app[v] = true;
             }
-            return free;
+            return free_app;
         case 'abs' :
-            var free = free_variables(expr.expr);
-            delete free[expr.var];
-            return free;
+            var free_abs = free_variables(expr.expr);
+            free_abs[expr.var.id] = true;
+            return free_abs;
+    }
+}
+
+// x is a var
+function substitute(e, x, expr) {
+    switch (expr.type) {
+        case 'var' :
+            if(expr.id == x.id) { // e for x in x => e
+                return e;
+            }
+            else { // e for x in y => y
+                return expr;
+            }
+        case 'app' : // e for x in (f g) => (e for x in f) (e for x in g)
+            return new App(substitute(e, x, expr.func), substitute(e, x, expr.arg));
+        case 'abs' :
+            if(expr.var.id == x.id) { // e for x in \x.e1 => \x.e1
+                return expr;
+            }
+            else if(!(expr.var.id in free_variables(e))) {
+                return new Abs(expr.var, substitute(e, x, expr.expr));
+            }
+            else { // rename
+                var z = rename(expr.var.id);
+                while(z in free_variables(e) || z in variables(expr.expr)) {
+                    console.log(z);
+                    z = rename(z);
+                }
+                return new Abs(new Var(z), substitute(e, x, substitute(new Var(z), expr.var, expr.expr)));
+            }
+    }
+}
+
+function rename(y) {
+    var res = /^(.*?)([\d]*)$/.exec(y);
+    var prefix = res[1];
+    var num = res[2];
+    return prefix + (num == '' ? 1 : parseInt(num) + 1);
+}
+
+
+// returns set of variables string ids
+function free_variables(expr) {
+    switch (expr.type) {
+        case 'var' :
+            var free_var = {};
+            free_var[expr.id] = true;
+            return free_var;
+
+        case 'app' :
+            var free_in_arg = free_variables(expr.arg);
+            var free_app = free_variables(expr.func);
+            for(var v in free_in_arg) {
+                free_app[v] = true;
+            }
+            return free_app;
+        case 'abs' :
+            var free_abs = free_variables(expr.expr);
+            delete free_abs[expr.var.id];
+            return free_abs;
     }
 }
 
