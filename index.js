@@ -21,7 +21,6 @@ function pretty_str_expr(expr) {
         case 'var': return expr.id;
         case 'app': return "App(" + pretty_str_expr(expr.func) + ", " + pretty_str_expr(expr.arg) + ")";
         case 'abs': return "Abs(" + pretty_str_expr(expr.var) + ", " + pretty_str_expr(expr.expr) + ")";
-        default:    console.log("somethings wrong: " + expr + " " + expr.type);
     }
 }
 
@@ -32,11 +31,10 @@ function pretty_print(expr) {
         case 'app':
             var pretty_func = pretty_print(expr.func);
             var pretty_arg = pretty_print(expr.arg);
-
             if(expr.func.type == 'abs') {
                 pretty_func = '('  + pretty_func + ')';
             }
-            if(expr.arg.type.type == 'app') {
+            if(expr.arg.type == 'app') {
                 pretty_arg = '('  + pretty_arg + ')';
             }
             return pretty_func + ' ' + pretty_arg;
@@ -177,15 +175,15 @@ function eval(stepper) {
 }
 
 function normal_step(ast_node) {
-     switch (ast_node.type) {
+    switch (ast_node.type) {
         case 'var': return { stepped : false, node : ast_node };
-        case 'app': {
+        case 'app':
             var func = ast_node.func;
             var arg = ast_node.arg;
             var func_evaled = normal_step(func);
 
             if(func_evaled.stepped) {
-               return { stepped : true, node : new App(func_evaled.node, arg) };
+                return { stepped : true, node : new App(func_evaled.node, arg) };
             }
             else {
                 switch(func.type) {
@@ -197,31 +195,30 @@ function normal_step(ast_node) {
                         return { stepped : true, node : substitute(arg, func.var, func.expr) }
                 }
             }
-        }
         case 'abs':
-             var expr_evaled = normal_step(ast_node.expr);
-             return { stepped : expr_evaled.stepped, node : new Abs(ast_node.var, expr_evaled.node) };
+            var expr_evaled = normal_step(ast_node.expr);
+            return { stepped : expr_evaled.stepped, node : new Abs(ast_node.var, expr_evaled.node) };
     }
 }
 
 function variables(expr) {
+    var vars = {};
     switch (expr.type) {
         case 'var' :
-            var free_var = {};
-            free_var[expr.id] = true;
-            return free_var;
-
+            vars[expr.id] = true;
+            return vars;
         case 'app' :
-            var free_in_arg = free_variables(expr.arg);
-            var free_app = free_variables(expr.func);
-            for(var v in free_in_arg) {
-                free_app[v] = true;
-            }
-            return free_app;
+            _.each(_.keys(variables(expr.func)), function (v) {
+                vars[v] = true;
+            });
+            _.each(_.keys(variables(expr.arg)), function (v) {
+                vars[v] = true;
+            });
+            return vars;
         case 'abs' :
-            var free_abs = free_variables(expr.expr);
-            free_abs[expr.var.id] = true;
-            return free_abs;
+            vars = variables(expr.expr);
+            vars[expr.var.id] = true;
+            return vars;
     }
 }
 
@@ -357,9 +354,7 @@ function lex_assume_correct(program) {
 
 
 var evaluation_stategies = {
-    "Normal" : normal_step,
-    "Pass by Value" : function () {},
-    "Pass by Reference" : function () {}
+    "Normal" : normal_step
 };
 
 function set_strategy(strategy) {
@@ -377,6 +372,13 @@ $(function() {
     $(".dropdown-menu li a").click(function () {
         set_strategy($(this).text());
     });
+
+    $("#eval_button").mouseup(function(){
+        $(this).blur();
+    })
+    $("#step_button").mouseup(function(){
+        $(this).blur();
+    })
 });
 
 $.each(evaluation_stategies, function(name, func) {
