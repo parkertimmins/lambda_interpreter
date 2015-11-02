@@ -1,0 +1,28 @@
+
+
+
+
+
+body {
+    background-color: #525252;
+}
+
+#expression {
+    background-color:#2B2B2B;
+    color: rgb(254, 160, 0);
+    max-width:100%;
+
+}
+
+.well {
+    background-color: #3f3f3f;
+}
+
+.navbar {
+    background-color: #0b1f3f;
+}
+
+.btn {
+    background-color: #0b1f3f;
+}
+

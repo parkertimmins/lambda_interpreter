@@ -99,9 +99,6 @@ function tests() {
 //    test(normal_step(new Var('y')), { stepped : false, node : new Var('y') }, eq_obj);
 
 
-
-
-
 }
 
 function eq_obj(a, b) {
@@ -244,7 +241,6 @@ function substitute(e, x, expr) {
             else { // rename
                 var z = rename(expr.var.id);
                 while(z in free_variables(e) || z in variables(expr.expr)) {
-                    console.log(z);
                     z = rename(z);
                 }
                 return new Abs(new Var(z), substitute(e, x, substitute(new Var(z), expr.var, expr.expr)));
@@ -399,13 +395,15 @@ $("#eval_button").click(function(){
 
 $("#step_button").click(function(){
     var expr = $("#expression").val();
-
     if(expr != '') {
+        var stepper = evaluation_stategies[get_current_strategy()];
         var tokens = separate_tokens(expr);
         var parsed = shunting_yard(tokens);
-        var stepper = evaluation_stategies[get_current_strategy()];
         var evaled = stepper(parsed).node;
         $("#expression").val(pretty_print(evaled));
         $("#expression").text(pretty_print(evaled));
     }
 });
+
+
+
