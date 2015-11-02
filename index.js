@@ -24,18 +24,19 @@ function pretty_str_expr(expr) {
     }
 }
 
+/// has errors !!!! (\x.x) (\x.x) (|x.x) (\x.x)
 function pretty_print(expr) {
      switch (expr.type) {
         case 'var': return expr.id;
-        case 'abs': return '\\' + expr.var.id + '.' + pretty_print(expr.expr);
+        case 'abs': return '(\\' + expr.var.id + '.' + pretty_print(expr.expr) + ')';
         case 'app':
             var pretty_func = pretty_print(expr.func);
             var pretty_arg = pretty_print(expr.arg);
-            if(expr.func.type == 'abs') {
-                pretty_func = '('  + pretty_func + ')';
-            }
-            if(expr.arg.type == 'app') {
-                pretty_arg = '('  + pretty_arg + ')';
+            //if (expr.func.type == 'abs') {
+             //   pretty_func = '(' + pretty_func + ')';
+            ///}
+            if (expr.arg.type == 'app') {
+                pretty_arg = '(' + pretty_arg + ')';
             }
             return pretty_func + ' ' + pretty_arg;
     }
@@ -94,11 +95,6 @@ function tests() {
     test(substitute(new Abs(new Var('y'), new Var('y')), new Var('x'), new Abs(new Var('y'), new Var('x'))), new Abs(new Var('y'), new Abs(new Var('y'), new Var('y'))), eq_ast);
 
     test(substitute(new Var('y'), new Var('x'), new Abs(new Var('y'), new Var('x'))), new Abs(new Var('y1'), new Var('y')), eq_ast);
-
- //   print(normal_step(new Var('y')));
-//    test(normal_step(new Var('y')), { stepped : false, node : new Var('y') }, eq_obj);
-
-
 }
 
 function eq_obj(a, b) {
@@ -113,7 +109,6 @@ function eq_obj(a, b) {
     return true;
 }
 
-
 function eq_set(a, b) {
     if(Object.keys(a).length != Object.keys(b).length) {
         return false;
@@ -125,9 +120,6 @@ function eq_set(a, b) {
     }
     return true;
 }
-
-
-
 
 function test(a, b, cond) {
     try {
@@ -255,7 +247,6 @@ function rename(y) {
     return prefix + (num == '' ? 1 : parseInt(num) + 1);
 }
 
-
 // returns set of variables string ids
 function free_variables(expr) {
     switch (expr.type) {
@@ -349,6 +340,7 @@ function lex_assume_correct(program) {
 
 
 
+
 var evaluation_stategies = {
     "Normal" : normal_step
 };
@@ -362,9 +354,7 @@ function get_current_strategy() {
 }
 
 $(function() {
-
     set_strategy(Object.keys(evaluation_stategies)[0]);
-
     $(".dropdown-menu li a").click(function () {
         set_strategy($(this).text());
     });
@@ -388,6 +378,7 @@ $("#eval_button").click(function(){
         var tokens = separate_tokens(expr);
         var parsed = shunting_yard(tokens);
         var evaled = eval(stepper)(parsed);
+        console.log(pretty_str_expr(evaled))
         $("#expression").val(pretty_print(evaled));
         $("#expression").text(pretty_print(evaled));
     }
@@ -399,11 +390,11 @@ $("#step_button").click(function(){
         var stepper = evaluation_stategies[get_current_strategy()];
         var tokens = separate_tokens(expr);
         var parsed = shunting_yard(tokens);
+        console.log('before: ' + pretty_str_expr(parsed));
         var evaled = stepper(parsed).node;
+        console.log('after:  ' + pretty_str_expr(evaled));
         $("#expression").val(pretty_print(evaled));
         $("#expression").text(pretty_print(evaled));
     }
 });
-
-
 

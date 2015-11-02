@@ -1,15 +1,18 @@
 
-
-
-
-
 body {
     background-color: #525252;
 }
 
 #expression {
     background-color:#2B2B2B;
-    color: rgb(254, 160, 0);
+    color: rgba(255, 163, 0, 0.83);
+    max-width:100%;
+
+}
+
+#expr {
+    background-color:#2B2B2B;
+    color: rgba(255, 163, 0, 0.83);
     max-width:100%;
 
 }
@@ -25,4 +28,3 @@ body {
 .btn {
     background-color: #0b1f3f;
 }
-
