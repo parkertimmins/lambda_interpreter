@@ -132,7 +132,7 @@ function move_from_stack_to_output_while(stack, output, condition) {
     }
 }
 
-// shunting_parse
+// shunting yard algorithm
 function parse(tokens) {
     var output = [];
     var stack = [];
@@ -171,6 +171,81 @@ function separate_tokens(prog_str) {
     return prog_str.split(/(\)|\(|\\|\.|\w+|\s+)/).filter(function (t) {return t != ''});
 }
 
+/*
+
+
+         (     )     .     x
+    (    ((n   ()i   (.i   (xn
+    )    )(a   ))n   ).i   )xa
+    .    .(n   .)i   ..i   .xn
+    x    x(a   x)n   x.n   xxa
+
+
+    application:   )(   x(   )x  xx
+    nothing:   ((   .(   ))  x)  x.  (x  .x   start    end
+    illegal:   ()   .)   (.  ).  ..
+
+
+    complain if anything illegal
+    split on whitespace
+    tokenize into tokens
+    complain if two tokens are adjacent that shouldn't be
+    remove extraneous whitespace
+
+*/
+function ll(expr) {
+    var illegal_tokens = /[^\)\(\.\w\s]+/g;
+    var res = illegal_tokens.exec(expr);
+    if(res) {
+        return { result: expr, msg: 'Illegal input \'' + res[0] + '\' at index ' + res.index };
+    }
+
+    var tok_strs = _.reject(expr.split(/(\)|\(|\\|\.|\w+|\s+)/g), function (t) {
+        return t == '' || /\s+/.test(t);
+    });
+
+    var tokens = [];
+    var res = _.reduce(tok_strs, function(tokens, num) {
+        if(memo == [] && (num == '.' || num == ')')) {
+            return {result: expr, msg: 'should start with . or )'};
+        }
+        else if(/[\(\.]/.test(tokens[tokens.length-1]) && num == ')' ||
+                /[\(\)\.]/.test(tokens[tokens.length-1]) && num == '.') {
+            return { result: expr, msg: 'should start with . or )' };
+        }
+        tokens.push(num);
+        return tokens;
+    }, []);
+
+
+}
+
+function remove_extra_spaces(program) {
+    return program
+        .replace(/\(\s+\\/g, '(\\')
+        .replace(/\(\s+(\w+)/g, '\($1')
+        .replace(/\\\s+(\w+)/g, '\\$1')
+        .replace(/(\w+)\s+\./g, '$1.')
+        .replace(/\.\s+(\w+)/g, '.$1')
+        .replace(/\.\s+\\/g, '.\\')
+        .replace(/(\w+)\s+\)/g, '$1\)')
+        .replace(/\)\s+\)/g, '\)\)')
+        .replace(/\(\s+\(/g, '\(\(');
+}
+
+function lex(program) {
+    program = remove_extra_spaces($.trim(program));
+    console.log(program);
+    var tokens = [];
+    var res;
+    var regex = /\)|\(|\\|\.|\w+|\s+/g;
+    //var regex = /\)|\(|\\|\.|\w+|\s+|[^\)\(\.\w\s]+/g;
+    while ((res = regex.exec(program)) !== null) {
+        tokens.push(res[0]);
+    }
+    return tokens;
+}
+
 // all spaces are lambda application => whitespace matters
 function lex_assume_correct(program) {
     var tokens = [];
@@ -207,7 +282,7 @@ $.each(evaluation_stategies, function(name, func) {
 
 function run(evaluator, expr) {
     if (expr != '') {
-        var tokens = separate_tokens(expr);
+        var tokens = lex(expr);
         var parsed = parse(tokens);
         console.log('before: ' + pretty_str(parsed));
         var evaled = evaluator(parsed).node;
