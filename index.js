@@ -24,21 +24,14 @@ function pretty_str_expr(expr) {
     }
 }
 
-/// has errors !!!! (\x.x) (\x.x) (|x.x) (\x.x)
-function pretty_print(expr) {
+// pretty print
+// unnecessary parenthesises uses in some abstractions
+function pp(expr) {
      switch (expr.type) {
         case 'var': return expr.id;
-        case 'abs': return '(\\' + expr.var.id + '.' + pretty_print(expr.expr) + ')';
+        case 'abs': return '(\\' + expr.var.id + '.' + pp(expr.expr) + ')';
         case 'app':
-            var pretty_func = pretty_print(expr.func);
-            var pretty_arg = pretty_print(expr.arg);
-            //if (expr.func.type == 'abs') {
-             //   pretty_func = '(' + pretty_func + ')';
-            ///}
-            if (expr.arg.type == 'app') {
-                pretty_arg = '(' + pretty_arg + ')';
-            }
-            return pretty_func + ' ' + pretty_arg;
+            return pp(expr.func) + ' ' + (expr.arg.type == 'app' ? '('+pp(expr.arg)+')' : pp(expr.arg));
     }
 }
 
@@ -50,110 +43,7 @@ function pretty(prog_str) {
     return pretty_str_expr(shunting_yard(separate_tokens(prog_str)));
 }
 
-var x = 1;
-
-function tests() {
-
-    test(pretty('x x'), 'App(x, x)');
-    test(pretty('\\x.x'), 'Abs(x, x)');
-    test(pretty('(\\x.x)'), 'Abs(x, x)');
-
-    test(pretty('(\\x.a b) (\\y.b)'), 'App(Abs(x, App(a, b)), Abs(y, b))');
-    test(pretty('(\\s.a (b c))'), 'Abs(s, App(a, App(b, c)))');
-    test(pretty('x x x'), 'App(App(x, x), x)');
-
-    test(pretty('(\\x.x z) \\y.w \\w.w x y z'), 'App(Abs(x, App(x, z)), Abs(y, App(w, Abs(w, App(App(App(w, x), y), z)))))');
-    test(pretty('(\\x.x z) (\\y.w \\w.w x y z)'), 'App(Abs(x, App(x, z)), Abs(y, App(w, Abs(w, App(App(App(w, x), y), z)))))');
-    test(pretty('x x x x x'), 'App(App(App(App(x, x), x), x), x)');
-
-    test(pretty('\\x.\\x.\\x.\\x.x'), 'Abs(x, Abs(x, Abs(x, Abs(x, x))))');
-    test(new Var("x"), new Var("x"), eq_ast);
-    test(new App(new Var('t'), new Var('p')), new App(new Var('t'), new Var('p')), eq_ast);
-
-    test(new Abs(new Var('r'), new App(new Var('t'), new Var('p'))), new Abs(new Var('r'), new App(new Var('t'), new Var('p'))), eq_ast);
-    test(new Var("y"), new Var("x"), neq_ast);
-    test(new App(new Var('t'), new Var('p')), new App(new Var('p'), new Var('t')), neq_ast);
-
-    test(new Abs(new Var("y"), new Var("x")), new App(new Var("y"), new Var("x")), neq_ast);
-    test(new Abs(new Var("y"), new Var("x")), 5, neq_ast);
-    test(eq_set({'x' : 1}, {'y' : 1}), false);
-
-    test(eq_set({}, {}), true);
-    test(eq_set({'x' : 1}, {'x' : 1}), true);
-    test(eq_set({'x' : 1}, {'x' : 1, 'y':1}), false);
-
-    test(free_variables(new Var('x')), { 'x' : true }, eq_set);
-    test(free_variables(new Abs(new Var('x'), new Var('x'))), {}, eq_set);
-    test(free_variables(new App(new Var('x'), new Abs(new Var('x'), new Var('x')))), { 'x' : true }, eq_set);
-
-    test(variables(new Abs(new Var('x'), new Var('x'))), { 'x' : true }, eq_set);
-    test(substitute(new Var('x'), new Var('y'), new Var('y')), new Var('x'), eq_ast);
-    test(substitute(new Var('x'), new Var('y'), new Var('t')), new Var('t'), eq_ast);
-
-    test(substitute(new Var('x'), new Var('y'), new App(new Var('y'), new Var('t'))), new App(new Var('x'), new Var('t')), eq_ast);
-    test(substitute(new Var('e'), new Var('x'), new Abs(new Var('x'), new Var('e1'))), new Abs(new Var('x'), new Var('e1')), eq_ast);
-    test(substitute(new Abs(new Var('y'), new Var('y')), new Var('x'), new Abs(new Var('y'), new Var('x'))), new Abs(new Var('y'), new Abs(new Var('y'), new Var('y'))), eq_ast);
-
-    test(substitute(new Var('y'), new Var('x'), new Abs(new Var('y'), new Var('x'))), new Abs(new Var('y1'), new Var('y')), eq_ast);
-}
-
-function eq_obj(a, b) {
-    if(Object.keys(a).length != Object.keys(b).length) {
-        return false;
-    }
-    for(var k in a) {
-        if(!(k in b) || a[k] != b[k]) {
-            return false;
-        }
-    }
-    return true;
-}
-
-function eq_set(a, b) {
-    if(Object.keys(a).length != Object.keys(b).length) {
-        return false;
-    }
-    for(var k in a) {
-        if(!(k in b)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-function test(a, b, cond) {
-    try {
-        cond = typeof cond !== 'undefined' ? cond : function (c, d) {
-            return c == d
-        };
-        console.log(x + ': ' + (cond(a, b) ? 'pass' : 'failed: ' + a + ", " + b));
-    }
-    catch (e) {
-        console.log(a);
-        console.log(e);
-    }
-    x = x + 1;
-}
-
-function neq_ast(a, b) {
-    return !eq_ast(a,b);
-}
-
-function eq_ast(a, b) {
-   if(!('type' in a || 'type' in b)) {
-       return a == b;
-   }
-   if(a.type == b.type) {
-       switch(a.type) {
-           case 'var': return a.id == b.id;
-           case 'app': return eq_ast(a.func, b.func) && eq_ast(a.arg, b.arg);
-           case 'abs': return eq_ast(a.var, b.var) && eq_ast(a.expr, b.expr);
-       }
-   }
-   return false;
-}
-
-function eval(stepper) {
+function fixpoint(stepper) {
     return function (expr) {
         var expr_evaled = stepper(expr);
         while(expr_evaled.stepped) {
@@ -163,30 +53,25 @@ function eval(stepper) {
     };
 }
 
-function normal_step(ast_node) {
-    switch (ast_node.type) {
-        case 'var': return { stepped : false, node : ast_node };
+function normal_step(node) {
+    switch (node.type) {
+        case 'var': return { stepped: false, node: node };
         case 'app':
-            var func = ast_node.func;
-            var arg = ast_node.arg;
-            var func_evaled = normal_step(func);
-
-            if(func_evaled.stepped) {
-                return { stepped : true, node : new App(func_evaled.node, arg) };
-            }
-            else {
-                switch(func.type) {
-                    case 'var':
-                    case 'app':
-                        var arg_evaled = normal_step(arg);
-                        return { stepped : arg_evaled.stepped, node: new App(func, arg_evaled.node) };
-                    case 'abs': // redex
-                        return { stepped : true, node : substitute(arg, func.var, func.expr) }
-                }
+            switch(node.func.type) {
+                case 'var':
+                case 'app':
+                    var func_evaled = normal_step(node.func);
+                    if (func_evaled.stepped) {
+                        return {stepped: true, node: new App(func_evaled.node, node.arg)};
+                    }
+                    var arg_evaled = normal_step(node.arg);
+                    return { stepped: arg_evaled.stepped, node: new App(node.func, arg_evaled.node) };
+                case 'abs': // redex
+                    return {stepped: true, node: substitute(node.arg, node.func.var, node.func.expr)}
             }
         case 'abs':
-            var expr_evaled = normal_step(ast_node.expr);
-            return { stepped : expr_evaled.stepped, node : new Abs(ast_node.var, expr_evaled.node) };
+            var expr_evaled = normal_step(node.expr);
+            return { stepped : expr_evaled.stepped, node : new Abs(node.var, expr_evaled.node) };
     }
 }
 
@@ -377,10 +262,10 @@ $("#eval_button").click(function(){
         var stepper = evaluation_stategies[get_current_strategy()];
         var tokens = separate_tokens(expr);
         var parsed = shunting_yard(tokens);
-        var evaled = eval(stepper)(parsed);
+        var evaled = fixpoint(stepper)(parsed);
         console.log(pretty_str_expr(evaled))
-        $("#expression").val(pretty_print(evaled));
-        $("#expression").text(pretty_print(evaled));
+        $("#expression").val(pp(evaled));
+        $("#expression").text(pp(evaled));
     }
 });
 
@@ -393,8 +278,8 @@ $("#step_button").click(function(){
         console.log('before: ' + pretty_str_expr(parsed));
         var evaled = stepper(parsed).node;
         console.log('after:  ' + pretty_str_expr(evaled));
-        $("#expression").val(pretty_print(evaled));
-        $("#expression").text(pretty_print(evaled));
+        $("#expression").val(pp(evaled));
+        $("#expression").text(pp(evaled));
     }
 });
 
