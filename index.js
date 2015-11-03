@@ -49,7 +49,7 @@ function fixpoint(stepper) {
         while(expr_evaled.stepped) {
             expr_evaled = stepper(expr_evaled.node);
         }
-        return expr_evaled.node;
+        return expr_evaled;
     };
 }
 
@@ -72,27 +72,6 @@ function normal_step(node) {
         case 'abs':
             var expr_evaled = normal_step(node.expr);
             return { stepped : expr_evaled.stepped, node : new Abs(node.var, expr_evaled.node) };
-    }
-}
-
-function variables(expr) {
-    var vars = {};
-    switch (expr.type) {
-        case 'var' :
-            vars[expr.id] = true;
-            return vars;
-        case 'app' :
-            _.each(_.keys(variables(expr.func)), function (v) {
-                vars[v] = true;
-            });
-            _.each(_.keys(variables(expr.arg)), function (v) {
-                vars[v] = true;
-            });
-            return vars;
-        case 'abs' :
-            vars = variables(expr.expr);
-            vars[expr.var.id] = true;
-            return vars;
     }
 }
 
@@ -132,28 +111,33 @@ function rename(y) {
     return prefix + (num == '' ? 1 : parseInt(num) + 1);
 }
 
-// returns set of variables string ids
+function variables(expr) {
+    switch (expr.type) {
+        case 'var' :
+            var var_vars = {};
+            var_vars[expr.id] = true;
+            return var_vars;
+        case 'app' :
+            return _.extend(variables(expr.func), variables(expr.arg));
+        case 'abs' :
+            var abs_vars = variables(expr.expr);
+            abs_vars[expr.var.id] = true;
+            return abs_vars;
+    }
+}
+
 function free_variables(expr) {
     switch (expr.type) {
         case 'var' :
             var free_var = {};
             free_var[expr.id] = true;
             return free_var;
-
         case 'app' :
-            var free_in_arg = free_variables(expr.arg);
-            var free_app = free_variables(expr.func);
-            for(var v in free_in_arg) {
-                free_app[v] = true;
-            }
-            return free_app;
+            return _.extend(free_variables(expr.func), free_variables(expr.arg));
         case 'abs' :
-            var free_abs = free_variables(expr.expr);
-            delete free_abs[expr.var.id];
-            return free_abs;
+            return _.omit(free_variables(expr.expr), expr.var.id);
     }
 }
-
 
 function move_from_stack_to_output_while(stack, output, condition) {
     while(stack.length > 0 && condition()) {
@@ -223,25 +207,15 @@ function lex_assume_correct(program) {
     return tokens;
 }
 
-
-
-
 var evaluation_stategies = {
     "Normal" : normal_step
 };
 
-function set_strategy(strategy) {
-    $("#strategies").text(strategy);
-}
-
-function get_current_strategy() {
-    return $("#strategies").text();
-}
-
 $(function() {
-    set_strategy(Object.keys(evaluation_stategies)[0]);
+    $("#strategies").text(Object.keys(evaluation_stategies)[0]);
+
     $(".dropdown-menu li a").click(function () {
-        set_strategy($(this).text());
+        $("#strategies").text($(this).text());
     });
 
     $("#eval_button").mouseup(function(){
@@ -256,30 +230,26 @@ $.each(evaluation_stategies, function(name, func) {
     $("#strategies_dropdown").append("<li><a href=\"#\">" + name+ "</a></li>");
 });
 
-$("#eval_button").click(function(){
-    var expr = $("#expression").val();
-    if(expr != '') {
-        var stepper = evaluation_stategies[get_current_strategy()];
-        var tokens = separate_tokens(expr);
-        var parsed = shunting_yard(tokens);
-        var evaled = fixpoint(stepper)(parsed);
-        console.log(pretty_str_expr(evaled))
-        $("#expression").val(pp(evaled));
-        $("#expression").text(pp(evaled));
-    }
-});
-
-$("#step_button").click(function(){
-    var expr = $("#expression").val();
-    if(expr != '') {
-        var stepper = evaluation_stategies[get_current_strategy()];
+function run(evaluator, expr) {
+    if (expr != '') {
         var tokens = separate_tokens(expr);
         var parsed = shunting_yard(tokens);
         console.log('before: ' + pretty_str_expr(parsed));
-        var evaled = stepper(parsed).node;
+        var evaled = evaluator(parsed).node;
         console.log('after:  ' + pretty_str_expr(evaled));
         $("#expression").val(pp(evaled));
         $("#expression").text(pp(evaled));
     }
+}
+
+$("#eval_button").click(function(){
+    var stepper = evaluation_stategies[$("#strategies").text()];
+    run(fixpoint(stepper), $("#expression").val());
+});
+
+
+$("#step_button").click(function(){
+    var stepper = evaluation_stategies[$("#strategies").text()];
+    run(stepper, $("#expression").val());
 });
 
