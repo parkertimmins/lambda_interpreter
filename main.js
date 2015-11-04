@@ -274,6 +274,62 @@ $(function() {
     $("#step_button").mouseup(function(){
         $(this).blur();
     })
+
+    var $areaText = $('#expr'),
+        origTxt = $areaText.text();
+
+    $areaText.on({
+        focus: function () {
+            $(this).on('keypress keyup', function (evt) {
+                var e = evt || window.event,
+                    charCode = e.which || e.keyCode;
+                if (charCode === 13 || charCode === 9 || charCode === 27) {
+                    alert('key');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    $(this).trigger('blur');
+                }
+            });
+        },
+        blur: function (evt) {
+            var e = evt || window.event,
+                area = (e.currentTarget) ? e.currentTarget : e.srcElement,
+                finalTxt = area.innerHTML;
+            if (finalTxt === origTxt) {
+                return true;
+            } else {
+                var language = 'lambda';
+                var grammar = Prism.languages.lambda;
+                var code = $(this)[0].textContent;
+                var highlightedCode = Prism.highlight(code, grammar, language);
+                $("#expr").html(highlightedCode);
+                console.log(highlightedCode);
+                return true;
+            }
+        }
+    });
+
+/*
+
+    $("#expr").blur(function (event) {
+        console.log('click');
+    });
+
+    $("#expr").keyup(function (event) {
+        console.log(event.which) ;
+
+        var language = 'lambda';
+        var grammar = Prism.languages.lambda;
+        var code = $(this)[0].textContent;
+        var highlightedCode = Prism.highlight(code, grammar, language);
+        console.log(highlightedCode);
+
+        Prism.highlightElement($(this)[0]);
+        //console.log(window.getSelection());
+    });
+
+ */
+
 });
 
 $.each(evaluation_stategies, function(name, func) {
@@ -286,7 +342,7 @@ function run(evaluator, expr) {
         var parsed = parse(tokens);
         console.log('before: ' + pretty_str(parsed));
         var evaled = evaluator(parsed).node;
-        console.log('after:  ' + pretty_str(evaled));
+        console.log('after: ' + pretty_str(evaled));
         $("#expression").val(pp(evaled));
         $("#expression").text(pp(evaled));
     }
@@ -302,4 +358,5 @@ $("#step_button").click(function(){
     var stepper = evaluation_stategies[$("#strategies").text()];
     run(stepper, $("#expression").val());
 });
+
 
