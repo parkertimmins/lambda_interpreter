@@ -261,7 +261,12 @@ var evaluation_stategies = {
     "Normal" : normal_step
 };
 
+
+
+var lambdaEditor;
+
 $(function() {
+
     $("#strategies").text(Object.keys(evaluation_stategies)[0]);
 
     $(".dropdown-menu li a").click(function () {
@@ -275,39 +280,26 @@ $(function() {
         $(this).blur();
     })
 
-    var $areaText = $('#expr'),
-        origTxt = $areaText.text();
 
-    $areaText.on({
-        focus: function () {
-            $(this).on('keypress keyup', function (evt) {
-                var e = evt || window.event,
-                    charCode = e.which || e.keyCode;
-                if (charCode === 13 || charCode === 9 || charCode === 27) {
-                    alert('key');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    $(this).trigger('blur');
-                }
-            });
-        },
-        blur: function (evt) {
-            var e = evt || window.event,
-                area = (e.currentTarget) ? e.currentTarget : e.srcElement,
-                finalTxt = area.innerHTML;
-            if (finalTxt === origTxt) {
-                return true;
-            } else {
-                var language = 'lambda';
-                var grammar = Prism.languages.lambda;
-                var code = $(this)[0].textContent;
-                var highlightedCode = Prism.highlight(code, grammar, language);
-                $("#expr").html(highlightedCode);
-                console.log(highlightedCode);
-                return true;
-            }
-        }
+    CodeMirror.defineSimpleMode("lambda", {
+            start: [
+                {regex: /\w+/, token: "variable"},
+                {regex: /\(|\)/, token: "paren"},
+                {regex: /\\|\./, token: "slash_dot"}
+            ]
     });
+
+     lambdaEditor = CodeMirror(document.getElementById("code"), {
+    //var myCodeMirror = CodeMirror.fromTextArea(document.getElementById("expression"),  {
+        lineWrapping: true,
+        value: '(\\m.\\n.\\f.\\x.m f (n f x)) (\\f.\\x.f (f x)) (\\f.\\x.f (f (f x)))',
+        mode:  "lambda",
+        theme: "expr"
+    });
+
+});
+
+    //var myCodeMirror = CodeMirror.fromTextArea(document.getElementById("expression"));
 
 /*
 
@@ -330,11 +322,13 @@ $(function() {
 
  */
 
-});
 
 $.each(evaluation_stategies, function(name, func) {
     $("#strategies_dropdown").append("<li><a href=\"#\">" + name+ "</a></li>");
 });
+
+
+
 
 function run(evaluator, expr) {
     if (expr != '') {
@@ -343,20 +337,19 @@ function run(evaluator, expr) {
         console.log('before: ' + pretty_str(parsed));
         var evaled = evaluator(parsed).node;
         console.log('after: ' + pretty_str(evaled));
-        $("#expression").val(pp(evaled));
-        $("#expression").text(pp(evaled));
+        return pp(evaled);
     }
 }
 
 $("#eval_button").click(function(){
     var stepper = evaluation_stategies[$("#strategies").text()];
-    run(fixpoint(stepper), $("#expression").val());
+    lambdaEditor.setValue(run(fixpoint(stepper), lambdaEditor.getValue()));
 });
 
 
 $("#step_button").click(function(){
     var stepper = evaluation_stategies[$("#strategies").text()];
-    run(stepper, $("#expression").val());
+    lambdaEditor.setValue(run(stepper, lambdaEditor.getValue()));
 });
 
 
