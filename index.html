@@ -11,26 +11,23 @@
     <script src="CodeMirror/lib/codemirror.js"></script>
     <link rel="stylesheet" href="CodeMirror/lib/codemirror.css">
     <script src="CodeMirror/mode/javascript/javascript.js"></script>
-    <script src="CodeMirror/addon/mode/simple.js"></script>
 
     <link href="style.css" rel="stylesheet">
 <!--    <script src="main.js"></script>-->
     <script src="tests.js"></script>
 
+    <script src="CodeMirror/addon/mode/simple.js"></script>
 
-    <script>
-
-    </script>
 </head>
 
 <body>
     <nav class="navbar navbar-default navbar-static-top">
         <div class="container">
             <div class="navbar-header">
-                <a class="navbar-brand" href="#">Lambda Interpreter</a>
+                <div id="title" class="navbar-brand" >Interpret λ</div>
             </div>
             <ul class="nav navbar-nav">
-                <li><a id="about">About</a></li>
+                <li><a id="about">about</a></li>
             </ul>
         </div>
     </nav>
@@ -45,16 +42,18 @@
             </div>
 
             <div class="col-md-3">
-                    <div class="dropup">
+                <button id="eval_button" type="submit" class="btn">Evaluate</button>
+                <button id="step_button" type="submit" class="btn">Step</button>
+
+                <br>
+                <br>
+                    <div class="dropdown">
                         <button id="strategies" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                         </button>
                         <ul id="strategies_dropdown" class="dropdown-menu" aria-labelledby="dropdownMenu1">
                         </ul>
                     </div>
 
-                    <br>
-                    <button id="eval_button" type="submit" class="btn">Evaluate</button>
-                    <button id="step_button" type="submit" class="btn">Step</button>
             </div>
         </div>
         </div>

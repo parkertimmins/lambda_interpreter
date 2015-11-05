@@ -289,8 +289,9 @@ $(function() {
             ]
     });
 
-     lambdaEditor = CodeMirror(document.getElementById("code"), {
-    //var myCodeMirror = CodeMirror.fromTextArea(document.getElementById("expression"),  {
+    //lambdaEditor = CodeMirror.fromTextArea(document.getElementById("expression"), {
+
+    lambdaEditor = CodeMirror(document.getElementById("code"), {
         lineWrapping: true,
         value: '(\\m.\\n.\\f.\\x.m f (n f x)) (\\f.\\x.f (f x)) (\\f.\\x.f (f (f x)))',
         mode:  "lambda",
@@ -299,36 +300,9 @@ $(function() {
 
 });
 
-    //var myCodeMirror = CodeMirror.fromTextArea(document.getElementById("expression"));
-
-/*
-
-    $("#expr").blur(function (event) {
-        console.log('click');
-    });
-
-    $("#expr").keyup(function (event) {
-        console.log(event.which) ;
-
-        var language = 'lambda';
-        var grammar = Prism.languages.lambda;
-        var code = $(this)[0].textContent;
-        var highlightedCode = Prism.highlight(code, grammar, language);
-        console.log(highlightedCode);
-
-        Prism.highlightElement($(this)[0]);
-        //console.log(window.getSelection());
-    });
-
- */
-
-
 $.each(evaluation_stategies, function(name, func) {
     $("#strategies_dropdown").append("<li><a href=\"#\">" + name+ "</a></li>");
 });
-
-
-
 
 function run(evaluator, expr) {
     if (expr != '') {
