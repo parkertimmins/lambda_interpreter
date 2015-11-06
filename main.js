@@ -45,6 +45,8 @@ function fixpoint(stepper) {
     };
 }
 
+var redexes = 0;
+
 function normal_step(node) {
     switch (node.type) {
         case 'var': return { stepped: false, node: node };
@@ -59,6 +61,7 @@ function normal_step(node) {
                     var arg_evaled = normal_step(node.arg);
                     return { stepped: arg_evaled.stepped, node: new App(node.func, arg_evaled.node) };
                 case 'abs': // redex
+                    redexes++;
                     return {stepped: true, node: substitute(node.arg, node.func.var, node.func.expr)}
             }
         case 'abs':
@@ -110,18 +113,39 @@ function variables(expr) {
     }
 }
 
-function free_variables(expr) {
-    switch (expr.type) {
-        case 'var' :
-            var free_var = {};
-            free_var[expr.id] = true;
-            return free_var;
-        case 'app' :
-            return _.extend(free_variables(expr.func), free_variables(expr.arg));
-        case 'abs' :
-            return _.omit(free_variables(expr.expr), expr.var.id);
+function free_variables(e) {
+    var free_vars = {};
+    function add_vars(expr) {
+        if(expr.type == 'var') {
+            free_vars[expr.id] = true;
+        }
+        else if(expr.type == 'app') {
+            add_vars(expr.func);
+        }
+        else if(expr.type == 'abs') {
+            add_vars(expr.expr);
+            delete free_vars[expr.var.id];
+        }
     }
+    add_vars(e);
+    return free_vars;
 }
+
+/*
+function free_variables(expr) {
+         if(expr.type == 'var') {
+             var free_var = {};
+             free_var[expr.id] = true;
+             return free_var;
+        }
+        else if(expr.type == 'app') {
+             return _.extend(free_variables(expr.func), free_variables(expr.arg));
+        }
+        else if(expr.type == 'abs') {
+             return _.omit(free_variables(expr.expr), expr.var.id);
+        }
+}
+ */
 
 function move_from_stack_to_output_while(stack, output, condition) {
     while(stack.length > 0 && condition()) {
@@ -293,10 +317,14 @@ $(function() {
 
     lambdaEditor = CodeMirror(document.getElementById("code"), {
         lineWrapping: true,
-        value: '(\\m.\\n.\\f.\\x.m f (n f x)) (\\f.\\x.f (f x)) (\\f.\\x.f (f (f x)))',
+//        value: '(\\m.\\n.\\f.\\x.m f (n f x)) (\\f.\\x.f (f x)) (\\f.\\x.f (f (f x)))',
+        value: '(\\f.(\\x.f (x x)) (\\x.f (x x))) (\\fact.\\c.(\\n.n (\\x.\\a.\\b.b) (\\a.\\b.a)) c (\\f.\\x.f x) ((\\m.\\n.\\f.m (n f)) c (fact ((\\n.\\f.\\x.n (\\g.\\h.h (g f)) (\\u.x) (\\u.u)) c)))) (\\f.\\x.f (f (f (f (f x)))))',
         mode:  "lambda",
-        theme: "expr"
+        theme: "expr",
+        matchBrackets: true,
+        keymap: 'vim'
     });
+
 
 });
 
@@ -306,11 +334,12 @@ $.each(evaluation_stategies, function(name, func) {
 
 function run(evaluator, expr) {
     if (expr != '') {
+        var t = new Date().getTime();
         var tokens = lex(expr);
         var parsed = parse(tokens);
-        console.log('before: ' + pretty_str(parsed));
         var evaled = evaluator(parsed).node;
-        console.log('after: ' + pretty_str(evaled));
+        var delay = new Date().getTime() - t;
+        console.log('delay: ' + delay);
         return pp(evaled);
     }
 }
@@ -318,6 +347,7 @@ function run(evaluator, expr) {
 $("#eval_button").click(function(){
     var stepper = evaluation_stategies[$("#strategies").text()];
     lambdaEditor.setValue(run(fixpoint(stepper), lambdaEditor.getValue()));
+    console.log('redexes: ' + redexes);
 });
 
 
