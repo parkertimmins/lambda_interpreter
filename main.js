@@ -322,7 +322,7 @@ $(function() {
         mode:  "lambda",
         theme: "expr",
         matchBrackets: true,
-        keymap: 'vim'
+      //  keyMap: 'vim'
     });
 
 
