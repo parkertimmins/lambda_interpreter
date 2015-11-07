@@ -2,18 +2,26 @@
 function Var(id) {
     this.type = 'var';
     this.id = id;
+    this.free_vars = {};
+    this.free_vars[id] = true;
 }
 
 function App(func, arg) {
     this.type = 'app';
     this.func = func;
     this.arg = arg;
+    this.free_vars = {};
+    _.extend(this.free_vars, func.free_vars);
+    _.extend(this.free_vars, arg.free_vars);
 }
 
 function Abs(v, expr) {
     this.type = 'abs';
     this.var = v;
     this.expr = expr;
+    this.free_vars = {};
+    _.extend(this.free_vars, expr.free_vars);
+    delete this.free_vars[this.var.id];
 }
 
 // pretty print
@@ -79,13 +87,13 @@ function substitute(e, x, expr) {
             if(expr.var.id == x.id) {
                 return expr;
             }
-            else if(!(expr.var.id in free_variables(e))) {
+            else if(!(expr.var.id in e.free_vars)) {
                 return new Abs(expr.var, substitute(e, x, expr.expr));
             }
             else {
                 do {
                     var z = rename(expr.var.id);
-                } while(z in free_variables(e) || z in variables(expr.expr));
+                } while(z in e.free_vars || z in variables(expr.expr));
                 return new Abs(new Var(z), substitute(e, x, substitute(new Var(z), expr.var, expr.expr)));
             }
     }
@@ -112,40 +120,6 @@ function variables(expr) {
             return abs_vars;
     }
 }
-
-function free_variables(e) {
-    var free_vars = {};
-    function add_vars(expr) {
-        if(expr.type == 'var') {
-            free_vars[expr.id] = true;
-        }
-        else if(expr.type == 'app') {
-            add_vars(expr.func);
-        }
-        else if(expr.type == 'abs') {
-            add_vars(expr.expr);
-            delete free_vars[expr.var.id];
-        }
-    }
-    add_vars(e);
-    return free_vars;
-}
-
-/*
-function free_variables(expr) {
-         if(expr.type == 'var') {
-             var free_var = {};
-             free_var[expr.id] = true;
-             return free_var;
-        }
-        else if(expr.type == 'app') {
-             return _.extend(free_variables(expr.func), free_variables(expr.arg));
-        }
-        else if(expr.type == 'abs') {
-             return _.omit(free_variables(expr.expr), expr.var.id);
-        }
-}
- */
 
 function move_from_stack_to_output_while(stack, output, condition) {
     while(stack.length > 0 && condition()) {
