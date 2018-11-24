@@ -89,7 +89,7 @@ function substitute(e, x, expr) {
 
 function rename(variable) {
     var [match, prefix, num] = /^(.*?)([\d]*)$/.exec(variable);
-    return prefix + (num ? 1 : parseInt(num) + 1);
+    return prefix + (num == '' ? 1 : parseInt(num) + 1);
 }
 
 function variables(expr) {

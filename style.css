@@ -55,3 +55,14 @@ body {
     color: rgba(113, 255, 225, 0.64);
 }
 
+.explanation {
+    color: black;
+    width: 98%;
+    margin: auto;
+    padding-top: 15px;
+}
+
+.expression {
+    color: #71ffe1;
+}
+

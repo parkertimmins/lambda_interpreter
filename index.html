@@ -39,6 +39,34 @@
                 </div>
             </div>
         </div>
+
+        <div class="explanation">
+            Above is a lambda calculus interpreter. Enter a lambda expression then click evaluate. The expression currently in the
+            interpreter is the factorial function along with an argument of 5 (signified by the last 5 f's in the expression).
+            Upon clicking evaluate, after a bit of waiting, the result of 5! = 120 will by displayed, this time in the form of 120 f's.
+            For a bit more explanation, here's the main parts of the above expression:
+
+            <p>
+                <h5>Y-Combinator</h5>
+                <div class="expression">(\f.(\x.f (x x)) (\x.f (x x)))</div>
+                This acts as a loop for the following expression.
+            </p>
+
+            <p>
+                <h5>Factorial function body</h5>
+                <div class="expression">(\fact.\c.(\n.n (\x.\a.\b.b) (\a.\b.a)) c (\f.\x.f x) ((\m.\n.\f.m (n f)) c (fact ((\n.\f.\x.n (\g.\h.h (g f)) (\u.x) (\u.u)) c))))</div>
+                Notice that the first argument is a function called fact. This is another function identical to this one. Unlike regular programming languages that
+                support recursion out of the box, in lambda calculus functions don't have assigned names, so a function can't call itself. Instead to make a recursive call,
+                a function must take a copy of itself as an argument. The preceding expression, the Y-combinator takes this loop body and passes it into itself as many times as necessary.
+            </p>
+
+            <p>
+                <h5>Number 5</h5>
+                <div class="expression">(\f.\x.f (f (f (f (f x)))))</div>
+                In lambda calculus an integer N is represented by a function that takes another function and apply it N times. You can think
+                of it as a loop with a counter variable of N.
+            </p>
+        </div>
     </div>
 <script src="main.js"></script>
 </body>
