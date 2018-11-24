@@ -1,23 +1,12 @@
 
-var evaluation_stategies = {
-    "Normal" : normal_step
-};
-
 var lambdaEditor;
 $(function() {
-
-    $("#strategies").text(Object.keys(evaluation_stategies)[0]);
-
-    $(".dropdown-menu li a").click(function () {
-        $("#strategies").text($(this).text());
-    });
-
     $("#eval_button").mouseup(function(){
         $(this).blur();
-    })
+    });
     $("#step_button").mouseup(function(){
         $(this).blur();
-    })
+    });
 
     CodeMirror.defineSimpleMode("lambda", {
             start: [
@@ -26,8 +15,6 @@ $(function() {
                 {regex: /\\|\./, token: "slash_dot"}
             ]
     });
-
-    //lambdaEditor = CodeMirror.fromTextArea(document.getElementById("expression"), {
 
     lambdaEditor = CodeMirror(document.getElementById("code"), {
         lineWrapping: true,
@@ -38,16 +25,10 @@ $(function() {
     });
 });
 
-$.each(evaluation_stategies, function(name, func) {
-    $("#strategies_dropdown").append("<li><a href=\"#\">" + name+ "</a></li>");
-});
-
 function run(evaluator, expr) {
-    if (expr != '') {
+    if (expr) {
         var t = new Date().getTime();
-        var tokens = lex(expr);
-        var parsed = parse(tokens);
-        var evaled = evaluator(parsed).node;
+        var evaled = evaluator(parse(lex(expr))).node;
         var delay = new Date().getTime() - t;
         console.log('delay: ' + delay);
         return pp(evaled);
@@ -55,14 +36,13 @@ function run(evaluator, expr) {
 }
 
 $("#eval_button").click(function(){
-    var stepper = evaluation_stategies[$("#strategies").text()];
+    var stepper = normal_step;
     lambdaEditor.setValue(run(fixpoint(stepper), lambdaEditor.getValue()));
     console.log('redexes: ' + redexes);
 });
 
-
 $("#step_button").click(function(){
-    var stepper = evaluation_stategies[$("#strategies").text()];
+    var stepper = normal_step;
     lambdaEditor.setValue(run(stepper, lambdaEditor.getValue()));
 });
 

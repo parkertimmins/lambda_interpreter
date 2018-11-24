@@ -27,35 +27,17 @@
             <div class="navbar-header">
                 <div id="title" class="navbar-brand" >Interpret λ</div>
             </div>
-            <ul class="nav navbar-nav">
-                <li><a id="about">about</a></li>
-            </ul>
         </div>
     </nav>
-
-
     <div class="container">
         <div class="well">
-        <div class="row">
-
-            <div id="code" class="col-md-9">
+            <div class="inner">
+                <div id="code"></div>
+                <div>
+                    <button id="eval_button" type="submit" class="btn">Evaluate Fully</button>
+                    <button id="step_button" type="submit" class="btn">Evaluate Step</button>
+                </div>
             </div>
-
-            <div class="col-md-3">
-                <button id="eval_button" type="submit" class="btn">Evaluate</button>
-                <button id="step_button" type="submit" class="btn">Step</button>
-
-                <br>
-                <br>
-                    <div class="dropdown">
-                        <button id="strategies" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                        </button>
-                        <ul id="strategies_dropdown" class="dropdown-menu" aria-labelledby="dropdownMenu1">
-                        </ul>
-                    </div>
-
-            </div>
-        </div>
         </div>
     </div>
 <script src="main.js"></script>
