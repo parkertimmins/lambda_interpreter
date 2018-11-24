@@ -1,19 +1,6 @@
 var x = 1;
 
 function tests() {
-    test(pretty('x x'), 'App(x, x)');
-    test(pretty('\\x.x'), 'Abs(x, x)');
-    test(pretty('(\\x.x)'), 'Abs(x, x)');
-
-    test(pretty('(\\x.a b) (\\y.b)'), 'App(Abs(x, App(a, b)), Abs(y, b))');
-    test(pretty('(\\s.a (b c))'), 'Abs(s, App(a, App(b, c)))');
-    test(pretty('x x x'), 'App(App(x, x), x)');
-
-    test(pretty('(\\x.x z) \\y.w \\w.w x y z'), 'App(Abs(x, App(x, z)), Abs(y, App(w, Abs(w, App(App(App(w, x), y), z)))))');
-    test(pretty('(\\x.x z) (\\y.w \\w.w x y z)'), 'App(Abs(x, App(x, z)), Abs(y, App(w, Abs(w, App(App(App(w, x), y), z)))))');
-    test(pretty('x x x x x'), 'App(App(App(App(x, x), x), x), x)');
-
-    test(pretty('\\x.\\x.\\x.\\x.x'), 'Abs(x, Abs(x, Abs(x, Abs(x, x))))');
     test(new Var("x"), new Var("x"), eq_ast);
     test(new App(new Var('t'), new Var('p')), new App(new Var('t'), new Var('p')), eq_ast);
 
@@ -25,15 +12,15 @@ function tests() {
     test(new Abs(new Var("y"), new Var("x")), 5, neq_ast);
     test(eq_set({'x' : 1}, {'y' : 1}), false);
 
-    test(eq_set({}, {}), true);
-    test(eq_set({'x' : 1}, {'x' : 1}), true);
-    test(eq_set({'x' : 1}, {'x' : 1, 'y':1}), false);
+    test(eq_set(new Set([]), new Set([])), true);
+    test(eq_set(new Set(['x']), new Set(['x'])), true);
+    test(eq_set(new Set(['x']), new Set(['x', 'y'])), false);
 
-    test(new Var('x').free_vars, { 'x' : true }, eq_set);
-    test(new Abs(new Var('x'), new Var('x')).free_vars, {}, eq_set);
-    test(new App(new Var('x'), new Abs(new Var('x'), new Var('x'))).free_vars, { 'x' : true }, eq_set);
+    test(new Var('x').free_vars, new Set(['x']), eq_set);
+    test(new Abs(new Var('x'), new Var('x')).free_vars, new Set([]), eq_set);
+    test(new App(new Var('x'), new Abs(new Var('x'), new Var('x'))).free_vars, new Set(['x']), eq_set);
 
-    test(variables(new Abs(new Var('x'), new Var('x'))), { 'x' : true }, eq_set);
+    test(variables(new Abs(new Var('x'), new Var('x'))), new Set(['x']), eq_set);
     test(substitute(new Var('x'), new Var('y'), new Var('y')), new Var('x'), eq_ast);
     test(substitute(new Var('x'), new Var('y'), new Var('t')), new Var('t'), eq_ast);
 
@@ -71,7 +58,7 @@ function eq_obj(a, b) {
 }
 
 function eq_set(a, b) {
-    if(Object.keys(a).length != Object.keys(b).length) {
+    if(a.size != b.size) {
         return false;
     }
     for(var k in a) {
@@ -88,7 +75,7 @@ function test(a, b, cond) {
             return c == d
         };
         if (!cond(a, b)) {
-            console.log(x + ': ' + 'failed: ' + a + ", " + b);
+            console.log(x + ': ' + 'failed: \n' + JSON.stringify(a) + "\n" + JSON.stringify(b));
         }
     }
     catch (e) {
