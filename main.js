@@ -2,25 +2,21 @@
 function Var(id) {
     this.type = 'var';
     this.id = id;
-    this.free_vars = {};
-    this.free_vars[id] = true;
+    this.free_vars = {[id]:true};
 }
 
 function App(func, arg) {
     this.type = 'app';
     this.func = func;
     this.arg = arg;
-    this.free_vars = {};
-    _.extend(this.free_vars, func.free_vars);
-    _.extend(this.free_vars, arg.free_vars);
+    this.free_vars = {...func.free_vars, ...arg.free_vars};
 }
 
 function Abs(v, expr) {
     this.type = 'abs';
     this.var = v;
     this.expr = expr;
-    this.free_vars = {};
-    _.extend(this.free_vars, expr.free_vars);
+    this.free_vars = {...expr.free_vars};
     delete this.free_vars[this.var.id];
 }
 
@@ -41,6 +37,10 @@ function pretty_str(expr) {
         case 'app': return "App(" + pretty_str(expr.func) + ", " + pretty_str(expr.arg) + ")";
         case 'abs': return "Abs(" + pretty_str(expr.var) + ", " + pretty_str(expr.expr) + ")";
     }
+}
+
+function pretty(expr) {
+    return pretty_str(parse(lex(expr)));
 }
 
 function fixpoint(stepper) {
@@ -99,21 +99,17 @@ function substitute(e, x, expr) {
     }
 }
 
-function rename(y) {
-    var res = /^(.*?)([\d]*)$/.exec(y);
-    var prefix = res[1];
-    var num = res[2];
+function rename(variable) {
+    [match, prefix, num] = /^(.*?)([\d]*)$/.exec(variable);
     return prefix + (num == '' ? 1 : parseInt(num) + 1);
 }
 
 function variables(expr) {
     switch (expr.type) {
         case 'var' :
-            var var_vars = {};
-            var_vars[expr.id] = true;
-            return var_vars;
+            return {[expr.id]: true};
         case 'app' :
-            return _.extend(variables(expr.func), variables(expr.arg));
+            return {...variables(expr.func),...variables(expr.arg)};
         case 'abs' :
             var abs_vars = variables(expr.expr);
             abs_vars[expr.var.id] = true;
@@ -141,14 +137,14 @@ function parse(tokens) {
             output.push(new Var(current));
         }
         else if(current.match(/\s+/)) { // only swap if both o1 and o2 are application
-            move_from_stack_to_output_while(stack, output, function() {return stack[stack.length-1].match(/\s+/)} );
+            move_from_stack_to_output_while(stack, output, () => stack[stack.length-1].match(/\s+/));
             stack.push(current);
         }
         else if(current == "(" || current == '.') {
             stack.push(current);
         }
         else if(current == ")") {
-            move_from_stack_to_output_while(stack, output, function() {return stack[stack.length-1] != '('} );
+            move_from_stack_to_output_while(stack, output, () => stack[stack.length-1] != '(');
             if(stack.length == 0) {
                 console.log("mismatched parenthesis");
             }
@@ -159,101 +155,27 @@ function parse(tokens) {
         console.log("mismatched parenthesis");
     }
     else {
-        move_from_stack_to_output_while(stack, output, function() {return true} );
+        move_from_stack_to_output_while(stack, output, () => true);
     }
     return output.pop();
 }
 
+function lex(program) {
+    return split_tokens(remove_extra_spaces(program.trim()));
+}
+
 // all spaces are lambda application => whitespace matters
-function separate_tokens(prog_str) {
-    return prog_str.split(/(\)|\(|\\|\.|\w+|\s+)/).filter(function (t) {return t != ''});
+function split_tokens(prog_str) {
+    return prog_str.split(/(\)|\(|\\|\.|\w+|\s+)/).filter(t => t != '');
 }
 
-/*
-
-
-         (     )     .     x
-    (    ((n   ()i   (.i   (xn
-    )    )(a   ))n   ).i   )xa
-    .    .(n   .)i   ..i   .xn
-    x    x(a   x)n   x.n   xxa
-
-
-    application:   )(   x(   )x  xx
-    nothing:   ((   .(   ))  x)  x.  (x  .x   start    end
-    illegal:   ()   .)   (.  ).  ..
-
-
-    complain if anything illegal
-    split on whitespace
-    tokenize into tokens
-    complain if two tokens are adjacent that shouldn't be
-    remove extraneous whitespace
-
-*/
-function ll(expr) {
-    var illegal_tokens = /[^\)\(\.\w\s]+/g;
-    var res = illegal_tokens.exec(expr);
-    if(res) {
-        return { result: expr, msg: 'Illegal input \'' + res[0] + '\' at index ' + res.index };
-    }
-
-    var tok_strs = _.reject(expr.split(/(\)|\(|\\|\.|\w+|\s+)/g), function (t) {
-        return t == '' || /\s+/.test(t);
-    });
-
-    var tokens = [];
-    var res = _.reduce(tok_strs, function(tokens, num) {
-        if(memo == [] && (num == '.' || num == ')')) {
-            return {result: expr, msg: 'should start with . or )'};
-        }
-        else if(/[\(\.]/.test(tokens[tokens.length-1]) && num == ')' ||
-                /[\(\)\.]/.test(tokens[tokens.length-1]) && num == '.') {
-            return { result: expr, msg: 'should start with . or )' };
-        }
-        tokens.push(num);
-        return tokens;
-    }, []);
-
-
-}
-
+// remove any space that isn't in one of the following spots: )_(, x_(, )_x, x_x, x_\, )_\
 function remove_extra_spaces(program) {
     return program
-        .replace(/\(\s+\\/g, '(\\')
-        .replace(/\(\s+(\w+)/g, '\($1')
-        .replace(/\\\s+(\w+)/g, '\\$1')
-        .replace(/(\w+)\s+\./g, '$1.')
-        .replace(/\.\s+(\w+)/g, '.$1')
-        .replace(/\.\s+\\/g, '.\\')
-        .replace(/(\w+)\s+\)/g, '$1\)')
-        .replace(/\)\s+\)/g, '\)\)')
-        .replace(/\(\s+\(/g, '\(\(');
+        .replace(/([^\)\w])\s+/g, '$1')
+        .replace(/\s+([^\(\w\\])/g, '$1')
 }
 
-function lex(program) {
-    program = remove_extra_spaces($.trim(program));
-    console.log(program);
-    var tokens = [];
-    var res;
-    var regex = /\)|\(|\\|\.|\w+|\s+/g;
-    //var regex = /\)|\(|\\|\.|\w+|\s+|[^\)\(\.\w\s]+/g;
-    while ((res = regex.exec(program)) !== null) {
-        tokens.push(res[0]);
-    }
-    return tokens;
-}
-
-// all spaces are lambda application => whitespace matters
-function lex_assume_correct(program) {
-    var tokens = [];
-    var res;
-    var regex = /\(|\)|\\|\.|\w+|\s+/g;
-    while ((res = regex.exec(program)) !== null) {
-        tokens.push(res[0]);
-    }
-    return tokens;
-}
 
 var evaluation_stategies = {
     "Normal" : normal_step
@@ -278,7 +200,6 @@ $(function() {
         $(this).blur();
     })
 
-
     CodeMirror.defineSimpleMode("lambda", {
             start: [
                 {regex: /\w+/, token: "variable"},
@@ -291,15 +212,11 @@ $(function() {
 
     lambdaEditor = CodeMirror(document.getElementById("code"), {
         lineWrapping: true,
-//        value: '(\\m.\\n.\\f.\\x.m f (n f x)) (\\f.\\x.f (f x)) (\\f.\\x.f (f (f x)))',
         value: '(\\f.(\\x.f (x x)) (\\x.f (x x))) (\\fact.\\c.(\\n.n (\\x.\\a.\\b.b) (\\a.\\b.a)) c (\\f.\\x.f x) ((\\m.\\n.\\f.m (n f)) c (fact ((\\n.\\f.\\x.n (\\g.\\h.h (g f)) (\\u.x) (\\u.u)) c)))) (\\f.\\x.f (f (f (f (f x)))))',
         mode:  "lambda",
         theme: "expr",
-        matchBrackets: true,
-      //  keyMap: 'vim'
+        matchBrackets: true
     });
-
-
 });
 
 $.each(evaluation_stategies, function(name, func) {

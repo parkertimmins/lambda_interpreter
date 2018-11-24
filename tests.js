@@ -29,9 +29,9 @@ function tests() {
     test(eq_set({'x' : 1}, {'x' : 1}), true);
     test(eq_set({'x' : 1}, {'x' : 1, 'y':1}), false);
 
-    test(free_variables(new Var('x')), { 'x' : true }, eq_set);
-    test(free_variables(new Abs(new Var('x'), new Var('x'))), {}, eq_set);
-    test(free_variables(new App(new Var('x'), new Abs(new Var('x'), new Var('x')))), { 'x' : true }, eq_set);
+    test(new Var('x').free_vars, { 'x' : true }, eq_set);
+    test(new Abs(new Var('x'), new Var('x')).free_vars, {}, eq_set);
+    test(new App(new Var('x'), new Abs(new Var('x'), new Var('x'))).free_vars, { 'x' : true }, eq_set);
 
     test(variables(new Abs(new Var('x'), new Var('x'))), { 'x' : true }, eq_set);
     test(substitute(new Var('x'), new Var('y'), new Var('y')), new Var('x'), eq_ast);
@@ -42,6 +42,20 @@ function tests() {
     test(substitute(new Abs(new Var('y'), new Var('y')), new Var('x'), new Abs(new Var('y'), new Var('x'))), new Abs(new Var('y'), new Abs(new Var('y'), new Var('y'))), eq_ast);
 
     test(substitute(new Var('y'), new Var('x'), new Abs(new Var('y'), new Var('x'))), new Abs(new Var('y1'), new Var('y')), eq_ast);
+
+    test(remove_extra_spaces('( \\'), '(\\');
+    test(remove_extra_spaces('( x'), '(x');
+    test(remove_extra_spaces('\\ x'), '\\x');
+    test(remove_extra_spaces('x .'), 'x.');
+    test(remove_extra_spaces('. x'), '.x');
+    test(remove_extra_spaces('.\\'), '.\\');
+    test(remove_extra_spaces('x )'), 'x)');
+    test(remove_extra_spaces(') )'), '))');
+    test(remove_extra_spaces('( ('), '((');
+
+    test(rename("x22"), "x23");
+    test(rename("cats"), "cats1");
+
 }
 
 function eq_obj(a, b) {
@@ -73,7 +87,9 @@ function test(a, b, cond) {
         cond = typeof cond !== 'undefined' ? cond : function (c, d) {
             return c == d
         };
-        console.log(x + ': ' + (cond(a, b) ? 'pass' : 'failed: ' + a + ", " + b));
+        if (!cond(a, b)) {
+            console.log(x + ': ' + 'failed: ' + a + ", " + b);
+        }
     }
     catch (e) {
         console.log(a);
